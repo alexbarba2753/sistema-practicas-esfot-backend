@@ -18,5 +18,25 @@ export const authController = {
     } catch (err) {
       next(err);
     }
+  },
+
+  async solicitarRecuperacion(req, res, next) {
+    try {
+      const { correo } = req.body;
+      const resultado = await authOrchestrator.solicitarRecuperacionClave(correo);
+      res.json(resultado);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async restablecerPassword(req, res, next) {
+    try {
+      const { token, nuevoPassword } = req.body;
+      const resultado = await authOrchestrator.restablecerClave(token, nuevoPassword);
+      res.json(resultado);
+    } catch (err) {
+      next(err);
+    }
   }
 };

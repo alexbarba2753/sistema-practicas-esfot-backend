@@ -6,6 +6,8 @@ const router = Router();
 
 // Rutas publicas
 router.post('/login', authController.login);
+router.post('/solicitar-recuperacion', authController.solicitarRecuperacion);
+router.post('/restablecer-password', authController.restablecerPassword);
 
 // Rutas protegidas
 router.get('/perfil', authMiddleware, authController.miPerfil);
