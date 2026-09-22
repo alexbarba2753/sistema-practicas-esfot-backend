@@ -1,0 +1,61 @@
+import mongoose from 'mongoose';
+
+const fuenteInstitucionalSchema = new mongoose.Schema(
+  {
+    titulo: {
+      type: String,
+      required: [true, 'El titulo de la fuente o reglamento es obligatorio'],
+      trim: true
+    },
+    categoria: {
+      type: String,
+      enum: ['reglamento', 'instructivo', 'formato', 'resolucion', 'general'],
+      default: 'reglamento'
+    },
+    descripcion: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    contenido: {
+      type: String,
+      required: [true, 'El contenido del documento es obligatorio']
+    },
+    fragmentos: [
+      {
+        orden: {
+          type: Number,
+          required: true
+        },
+        texto: {
+          type: String,
+          required: true
+        }
+      }
+    ],
+    enlaceUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    version: {
+      type: String,
+      default: '1.0',
+      trim: true
+    },
+    activo: {
+      type: Boolean,
+      default: true
+    },
+    subidoPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario'
+    }
+  },
+  {
+    collection: 'fuentes_institucionales',
+    timestamps: true
+  }
+);
+
+export const FuenteInstitucional = mongoose.model('FuenteInstitucional', fuenteInstitucionalSchema);
