@@ -1,0 +1,190 @@
+import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
+import { ActividadLaboral } from '../../infrastructure/database/models/ActividadLaboral.js';
+import { ActividadComunitaria } from '../../infrastructure/database/models/ActividadComunitaria.js';
+import { ESTADOS_ACTIVIDAD, ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
+import { errorHttp } from '../../domain/utils/errorHttp.js';
+import { validarJornadaLaboral, validarActividadComunitariaDatos } from '../../domain/utils/validarActividad.js';
+
+export const actividadService = {
+  // Calcula el acumulado de horas aprobadas, pendientes y restantes del estudiante en el aula
+  async calcularHorasAula(aulaId) {
+    const aula = await AulaVirtual.findById(aulaId);
+    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
+
+    let actividades = [];
+    if (aula.modalidad === MODALIDADES.LABORAL) {
+      actividades = await ActividadLaboral.find({ aulaVirtual: aulaId });
+    } else {
+      actividades = await ActividadComunitaria.find({ aulaVirtual: aulaId });
+    }
+
+    let horasAprobadas = 0;
+    let horasPendientes = 0;
+    let horasRechazadas = 0;
+
+    for (const act of actividades) {
+      if (act.estadoAprobacion === ESTADOS_ACTIVIDAD.APROBADO) {
+        horasAprobadas += act.horas;
+      } else if (act.estadoAprobacion === ESTADOS_ACTIVIDAD.PENDIENTE) {
+        horasPendientes += act.horas;
+      } else if (act.estadoAprobacion === ESTADOS_ACTIVIDAD.RECHAZADO) {
+        horasRechazadas += act.horas;
+      }
+    }
+
+    const porcentaje = Math.min(100, Math.round((horasAprobadas / aula.horasRequeridas) * 100));
+
+    return {
+      horasAprobadas,
+      horasPendientes,
+      horasRechazadas,
+      totalRegistradas: horasAprobadas + horasPendientes,
+      horasRequeridas: aula.horasRequeridas,
+      horasRestantes: Math.max(0, aula.horasRequeridas - horasAprobadas),
+      porcentajeCompletado: porcentaje,
+      cumplioRequisito: horasAprobadas >= aula.horasRequeridas
+    };
+  },
+
+  // Registra una jornada de practica laboral con validacion estricta y prevencion de duplicados diarios
+  async crearActividadLaboral(estudianteId, aulaId, datos) {
+    const aula = await AulaVirtual.findById(aulaId);
+    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
+
+    if (aula.estudiante?.toString() !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para registrar actividades en esta aula virtual', 403);
+    }
+
+    if (aula.modalidad !== MODALIDADES.LABORAL) {
+      throw errorHttp('Esta aula virtual no pertenece a la modalidad de Practicas Laborales', 400);
+    }
+
+    if (aula.estado !== ESTADOS_AULA.ABIERTA) {
+      throw errorHttp('El aula virtual se encuentra cerrada; no se permiten nuevos registros', 400);
+    }
+
+    if (aula.expedienteEntregado) {
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir mas actividades', 400);
+    }
+
+    const resumenPrevio = await this.calcularHorasAula(aulaId);
+    const datosValidados = validarJornadaLaboral(datos, aula, resumenPrevio);
+
+    // Prevencion de registros duplicados en el mismo dia calendario
+    const anio = datosValidados.fechaObj.getUTCFullYear();
+    const mes = datosValidados.fechaObj.getUTCMonth();
+    const dia = datosValidados.fechaObj.getUTCDate();
+    const inicioDia = new Date(Date.UTC(anio, mes, dia, 0, 0, 0, 0));
+    const finDia = new Date(Date.UTC(anio, mes, dia, 23, 59, 59, 999));
+
+    const bitacoraExistente = await ActividadLaboral.findOne({
+      aulaVirtual: aulaId,
+      fecha: { $gte: inicioDia, $lte: finDia }
+    });
+
+    if (bitacoraExistente) {
+      throw errorHttp(
+        `Ya existe una jornada laboral registrada para la fecha ${datosValidados.fechaObj.toISOString().split('T')[0]}`,
+        400
+      );
+    }
+
+    const nuevaActividad = new ActividadLaboral({
+      estudiante: estudianteId,
+      aulaVirtual: aulaId,
+      fecha: datosValidados.fechaObj,
+      horaEntrada: datosValidados.horaEntrada,
+      horaSalida: datosValidados.horaSalida,
+      horas: datosValidados.horas,
+      descripcion: datosValidados.descripcion,
+      estadoAprobacion: ESTADOS_ACTIVIDAD.PENDIENTE
+    });
+
+    await nuevaActividad.save();
+    const resumenActualizado = await this.calcularHorasAula(aulaId);
+
+    return {
+      success: true,
+      message: 'Jornada laboral registrada exitosamente en la bitacora',
+      actividad: nuevaActividad,
+      resumenHoras: resumenActualizado
+    };
+  },
+
+  async listarActividadesLaborales(aulaId, filtros = {}) {
+    const query = { aulaVirtual: aulaId };
+    if (filtros.estado && Object.values(ESTADOS_ACTIVIDAD).includes(filtros.estado)) {
+      query.estadoAprobacion = filtros.estado;
+    }
+
+    const actividades = await ActividadLaboral.find(query).sort({ fecha: 1 });
+    const resumen = await this.calcularHorasAula(aulaId);
+
+    return {
+      success: true,
+      total: actividades.length,
+      actividades,
+      resumenHoras: resumen
+    };
+  },
+
+  // Registra una actividad de servicio comunitario
+  async crearActividadComunitaria(estudianteId, aulaId, datos) {
+    const aula = await AulaVirtual.findById(aulaId);
+    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
+
+    if (aula.estudiante?.toString() !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para registrar actividades en esta aula virtual', 403);
+    }
+
+    if (aula.modalidad !== MODALIDADES.COMUNITARIO) {
+      throw errorHttp('Esta aula virtual no pertenece a la modalidad de Servicio Comunitario', 400);
+    }
+
+    if (aula.estado !== ESTADOS_AULA.ABIERTA) {
+      throw errorHttp('El aula virtual se encuentra cerrada; no se permiten nuevos registros', 400);
+    }
+
+    const resumenPrevio = await this.calcularHorasAula(aulaId);
+    const datosValidados = validarActividadComunitariaDatos(datos, aula, resumenPrevio);
+
+    const nuevaActividad = new ActividadComunitaria({
+      estudiante: estudianteId,
+      aulaVirtual: aulaId,
+      fecha: datosValidados.fechaObj,
+      horas: datosValidados.horas,
+      comunidadOInstitucion: datosValidados.comunidadOInstitucion,
+      beneficiariosAproximados: datos.beneficiariosAproximados || 0,
+      descripcion: datosValidados.descripcion,
+      archivoEvidenciaUrl: datos.archivoEvidenciaUrl || '',
+      estadoAprobacion: ESTADOS_ACTIVIDAD.PENDIENTE
+    });
+
+    await nuevaActividad.save();
+    const resumenActualizado = await this.calcularHorasAula(aulaId);
+
+    return {
+      success: true,
+      message: 'Actividad comunitaria registrada exitosamente',
+      actividad: nuevaActividad,
+      resumenHoras: resumenActualizado
+    };
+  },
+
+  async listarActividadesComunitarias(aulaId, filtros = {}) {
+    const query = { aulaVirtual: aulaId };
+    if (filtros.estado && Object.values(ESTADOS_ACTIVIDAD).includes(filtros.estado)) {
+      query.estadoAprobacion = filtros.estado;
+    }
+
+    const actividades = await ActividadComunitaria.find(query).sort({ fecha: 1 });
+    const resumen = await this.calcularHorasAula(aulaId);
+
+    return {
+      success: true,
+      total: actividades.length,
+      actividades,
+      resumenHoras: resumen
+    };
+  }
+};
