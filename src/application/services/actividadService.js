@@ -186,5 +186,62 @@ export const actividadService = {
       actividades,
       resumenHoras: resumen
     };
+  },
+
+  // Evaluacion por parte del docente tutor para aprobar o rechazar con retroalimentacion
+  async evaluarActividadLaboral(actividadId, docenteId, datos) {
+    const actividad = await ActividadLaboral.findById(actividadId);
+    if (!actividad) throw errorHttp('Actividad laboral no encontrada', 404);
+
+    const aula = await AulaVirtual.findById(actividad.aulaVirtual);
+    if (!aula || aula.docenteTutor?.toString() !== docenteId.toString()) {
+      throw errorHttp('No estas autorizado para evaluar actividades de esta aula virtual', 403);
+    }
+
+    const { estado, observacionesDocente } = datos;
+    if (!estado || ![ESTADOS_ACTIVIDAD.APROBADO, ESTADOS_ACTIVIDAD.RECHAZADO].includes(estado)) {
+      throw errorHttp("El estado de evaluacion debe ser 'aprobado' o 'rechazado'", 400);
+    }
+
+    actividad.estadoAprobacion = estado;
+    actividad.observacionesDocente = observacionesDocente ? observacionesDocente.trim() : '';
+    await actividad.save();
+
+    const resumen = await this.calcularHorasAula(actividad.aulaVirtual);
+
+    return {
+      success: true,
+      message: `Actividad laboral ${estado === ESTADOS_ACTIVIDAD.APROBADO ? 'aprobada' : 'rechazada'} exitosamente`,
+      actividad,
+      resumenHoras: resumen
+    };
+  },
+
+  async evaluarActividadComunitaria(actividadId, docenteId, datos) {
+    const actividad = await ActividadComunitaria.findById(actividadId);
+    if (!actividad) throw errorHttp('Actividad comunitaria no encontrada', 404);
+
+    const aula = await AulaVirtual.findById(actividad.aulaVirtual);
+    if (!aula || aula.docenteTutor?.toString() !== docenteId.toString()) {
+      throw errorHttp('No estas autorizado para evaluar actividades de esta aula virtual', 403);
+    }
+
+    const { estado, observacionesDocente } = datos;
+    if (!estado || ![ESTADOS_ACTIVIDAD.APROBADO, ESTADOS_ACTIVIDAD.RECHAZADO].includes(estado)) {
+      throw errorHttp("El estado de evaluacion debe ser 'aprobado' o 'rechazado'", 400);
+    }
+
+    actividad.estadoAprobacion = estado;
+    actividad.observacionesDocente = observacionesDocente ? observacionesDocente.trim() : '';
+    await actividad.save();
+
+    const resumen = await this.calcularHorasAula(actividad.aulaVirtual);
+
+    return {
+      success: true,
+      message: `Actividad comunitaria ${estado === ESTADOS_ACTIVIDAD.APROBADO ? 'aprobada' : 'rechazada'} exitosamente`,
+      actividad,
+      resumenHoras: resumen
+    };
   }
 };
