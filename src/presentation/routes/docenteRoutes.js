@@ -27,6 +27,7 @@ router.put('/convalidaciones/:certificadoId/evaluar', docenteController.evaluarC
 
 // 5. Revision de formulario FCP-001A
 router.get('/aulas/:aulaId/formulario-pendiente', docenteController.obtenerFormularioPendiente);
+router.get('/aulas/:aulaId/descargar-informe', docenteController.descargarInforme);
 
 // 6. Cierre formal, calificacion y emision de acta FCP-004
 router.post('/aulas/:aulaId/cerrar-practica', docenteController.cerrarPractica);

@@ -1,9 +1,10 @@
 import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
 import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
 import { FormularioAprobacion } from '../../infrastructure/database/models/FormularioAprobacion.js';
-import { ESTADOS_AULA } from '../../domain/constants/practicasConstants.js';
+import { ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
 import { actividadService } from './actividadService.js';
 import { convalidacionService } from './convalidacionService.js';
+import { excelService } from './excelService.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
 export const expedienteService = {
@@ -265,5 +266,45 @@ export const expedienteService = {
       actaAprobacion: acta,
       aulaEstado: aula.estado
     };
+  },
+
+  // Genera y transmite el informe tecnico en Excel oficial para estudiante o docente
+  async descargarInformeExcel(aulaId, usuarioId) {
+    const aula = await AulaVirtual.findById(aulaId)
+      .populate('estudiante', 'nombres apellidos cedula correo telefono')
+      .populate('docenteTutor', 'nombres apellidos cedula correo telefono');
+
+    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
+
+    const esEstudiante = aula.estudiante?._id?.toString() === usuarioId.toString();
+    const esDocente = aula.docenteTutor?._id?.toString() === usuarioId.toString();
+
+    if (!esEstudiante && !esDocente) {
+      throw errorHttp('No tienes permiso para descargar el formulario de esta aula', 403);
+    }
+
+    const formPendiente = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (!formPendiente) {
+      throw errorHttp(
+        'Primero debe generar el borrador del informe antes de poder descargarlo en Excel',
+        400
+      );
+    }
+
+    if (aula.modalidad === MODALIDADES.LABORAL) {
+      return await excelService.generarExcelInformeLaboral({
+        aula,
+        estudiante: aula.estudiante,
+        docente: aula.docenteTutor,
+        formularioPendiente: formPendiente
+      });
+    } else {
+      return await excelService.generarExcelInformeComunitario({
+        aula,
+        estudiante: aula.estudiante,
+        docente: aula.docenteTutor,
+        formularioPendiente: formPendiente
+      });
+    }
   }
 };

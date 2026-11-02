@@ -31,6 +31,7 @@ router.get('/aulas/:aulaId/convalidaciones', estudianteController.listarCertific
 router.get('/aulas/:aulaId/formulario-pendiente', estudianteController.obtenerFormularioPendiente);
 router.put('/aulas/:aulaId/formulario-pendiente', estudianteController.actualizarFormularioPendiente);
 router.post('/aulas/:aulaId/ia/generar-informe', estudianteController.generarBorradorInforme);
+router.get('/aulas/:aulaId/descargar-informe', estudianteController.descargarInforme);
 
 // 7. Entrega formal del expediente
 router.post('/aulas/:aulaId/entregar-expediente', estudianteController.entregarExpediente);

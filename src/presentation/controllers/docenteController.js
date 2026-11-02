@@ -102,5 +102,21 @@ export const docenteController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async descargarInforme(req, res, next) {
+    try {
+      const { aulaId } = req.params;
+      const { buffer, filename } = await docenteOrchestrator.descargarInforme(aulaId, req.usuario.id);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', buffer.length);
+      return res.status(200).send(buffer);
+    } catch (error) {
+      next(error);
+    }
   }
 };

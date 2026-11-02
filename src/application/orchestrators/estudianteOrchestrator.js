@@ -51,5 +51,9 @@ export const estudianteOrchestrator = {
 
   async entregarExpediente(aulaId, estudianteId) {
     return await expedienteService.entregarExpediente(aulaId, estudianteId);
+  },
+
+  async descargarInforme(aulaId, estudianteId) {
+    return await expedienteService.descargarInformeExcel(aulaId, estudianteId);
   }
 };

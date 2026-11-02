@@ -42,5 +42,9 @@ export const docenteOrchestrator = {
 
   async cerrarPractica(aulaId, docenteId, datos) {
     return await expedienteService.cerrarProcesoDocente(aulaId, docenteId, datos);
+  },
+
+  async descargarInforme(aulaId, docenteId) {
+    return await expedienteService.descargarInformeExcel(aulaId, docenteId);
   }
 };
