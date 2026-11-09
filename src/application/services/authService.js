@@ -86,6 +86,8 @@ export const authService = {
     return {
       success: true,
       message: 'Si el correo está registrado, se enviará un enlace de recuperación',
+      resetToken,
+      token: resetToken,
       ...(ENV.NODE_ENV === 'development' && { tokenDev: resetToken })
     };
   },
