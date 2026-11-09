@@ -1,5 +1,13 @@
+import dns from 'dns';
 import mongoose from 'mongoose';
 import { ENV } from '../config/env.js';
+
+// Servidores DNS publicos para resolver registros SRV de MongoDB Atlas en Windows
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+  // Ignora si el entorno no permite modificar servidores dns
+}
 
 export const connectDB = async () => {
   try {
@@ -15,4 +23,8 @@ export const connectDB = async () => {
     console.error('[MongoDB Error]', error.message);
     process.exit(1);
   }
+};
+
+export const disconnectDB = async () => {
+  await mongoose.disconnect();
 };
