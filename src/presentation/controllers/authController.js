@@ -32,8 +32,8 @@ export const authController = {
 
   async restablecerPassword(req, res, next) {
     try {
-      const { token, nuevoPassword } = req.body;
-      const resultado = await authOrchestrator.restablecerClave(token, nuevoPassword);
+      const { token, nuevaPassword, nuevoPassword } = req.body;
+      const resultado = await authOrchestrator.restablecerClave(token, nuevaPassword || nuevoPassword);
       res.json(resultado);
     } catch (err) {
       next(err);

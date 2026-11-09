@@ -6,6 +6,7 @@ const router = Router();
 
 // Rutas publicas
 router.post('/login', authController.login);
+router.post('/recuperar-password', authController.solicitarRecuperacion);
 router.post('/solicitar-recuperacion', authController.solicitarRecuperacion);
 router.post('/restablecer-password', authController.restablecerPassword);
 

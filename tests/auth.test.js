@@ -1,8 +1,15 @@
+import { jest, describe, test, expect, afterEach } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { ENV } from '../src/infrastructure/config/env.js';
+import { authOrchestrator } from '../src/application/orchestrators/authOrchestrator.js';
+import { authService } from '../src/application/services/authService.js';
 
-describe('Pruebas Unitarias de Autenticacion y Seguridad (Sprint 1)', () => {
+describe('Pruebas Unitarias de Autenticacion y Seguridad', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test('debe hashear contraseñas con bcrypt correctamente', async () => {
     const clavePlana = 'Password123!';
     const salt = await bcrypt.genSalt(10);
@@ -34,5 +41,21 @@ describe('Pruebas Unitarias de Autenticacion y Seguridad (Sprint 1)', () => {
     const token = jwt.sign(payload, 'otra_clave_secreta');
 
     expect(() => jwt.verify(token, ENV.JWT_SECRET)).toThrow();
+  });
+
+  test('debe delegar el inicio de sesion desde authOrchestrator hacia authService', async () => {
+    const mockRespuesta = {
+      success: true,
+      message: 'Inicio de sesión exitoso',
+      token: 'jwt_mock_token',
+      usuario: { id: 'u1', correo: 'admin@esfot.epn.edu.ec', rol: 'administrador' }
+    };
+
+    jest.spyOn(authService, 'iniciarSesion').mockResolvedValue(mockRespuesta);
+
+    const resultado = await authOrchestrator.iniciarSesion('admin@esfot.epn.edu.ec', 'AdminPassword123!');
+    expect(resultado.success).toBe(true);
+    expect(resultado.token).toBe('jwt_mock_token');
+    expect(authService.iniciarSesion).toHaveBeenCalledWith('admin@esfot.epn.edu.ec', 'AdminPassword123!');
   });
 });
