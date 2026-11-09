@@ -31,19 +31,25 @@ export const authOrchestrator = {
       { expiresIn: ENV.JWT_EXPIRES_IN }
     );
 
+    const usuarioDTO = {
+      id: usuario._id,
+      cedula: usuario.cedula,
+      nombres: usuario.nombres,
+      apellidos: usuario.apellidos,
+      correo: usuario.correo,
+      rol: usuario.rol,
+      telefono: usuario.telefono,
+      estado: usuario.estado
+    };
+
     return {
       success: true,
       message: 'Inicio de sesión exitoso',
       token,
-      usuario: {
-        id: usuario._id,
-        cedula: usuario.cedula,
-        nombres: usuario.nombres,
-        apellidos: usuario.apellidos,
-        correo: usuario.correo,
-        rol: usuario.rol,
-        telefono: usuario.telefono,
-        estado: usuario.estado
+      usuario: usuarioDTO,
+      datos: {
+        token,
+        usuario: usuarioDTO
       }
     };
   },

@@ -1,24 +1,38 @@
+import bcrypt from 'bcryptjs';
 import { connectDB, disconnectDB } from '../db.js';
 import { Usuario } from '../models/Usuario.js';
 import { ROLES } from '../../../domain/constants/practicasConstants.js';
 
 export const seedInitialAdmin = async () => {
-  const adminExistente = await Usuario.findOne({ rol: ROLES.ADMINISTRADOR });
-  if (!adminExistente) {
-    const adminBase = new Usuario({
+  const correoAdmin = 'admin@esfot.epn.edu.ec';
+  const passwordAdmin = 'AdminPassword123!';
+
+  let admin = await Usuario.findOne({
+    $or: [{ correo: correoAdmin }, { rol: ROLES.ADMINISTRADOR }]
+  });
+
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash(passwordAdmin, salt);
+
+  if (!admin) {
+    admin = new Usuario({
       cedula: '1700000001',
       nombres: 'Administrador',
       apellidos: 'ESFOT Sistema',
-      correo: 'admin@epn.edu.ec',
-      password: 'AdminPassword123!',
+      correo: correoAdmin,
+      password: passwordHash,
       telefono: '0999999999',
       rol: ROLES.ADMINISTRADOR,
       estado: 'activo'
     });
-    await adminBase.save();
-    console.log('[Seed] Usuario administrador inicial creado: admin@epn.edu.ec');
+    await admin.save();
+    console.log(`[Seed] Usuario administrador inicial creado: ${correoAdmin}`);
   } else {
-    console.log(`[Seed] Usuario administrador listo: ${adminExistente.correo}`);
+    admin.correo = correoAdmin;
+    admin.password = passwordHash;
+    admin.estado = 'activo';
+    await admin.save();
+    console.log(`[Seed] Usuario administrador listo: ${correoAdmin}`);
   }
 };
 

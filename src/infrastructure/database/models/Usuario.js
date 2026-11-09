@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { ROLES, ESTADOS_USUARIO } from '../../../domain/constants/practicasConstants.js';
 
 const usuarioSchema = new mongoose.Schema(
@@ -59,6 +60,16 @@ const usuarioSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+
+// Cifrar la contrasena antes de guardarla si fue modificada o es nueva
+usuarioSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
+  if (typeof this.password === 'string' && /^\$2[ab]\$\d{2}\$/.test(this.password)) {
+    return;
+  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
 
 // Ocultar password y campos de reseteo al serializar a JSON
 usuarioSchema.methods.toJSON = function () {
