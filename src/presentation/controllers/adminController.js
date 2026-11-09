@@ -163,11 +163,26 @@ export const adminController = {
   // Fuentes Normativas RAG
   async ingestarFuente(req, res, next) {
     try {
-      const fuente = await adminOrchestrator.ingestarFuente(req.body, req.usuario?.id);
+      const fuente = await adminOrchestrator.ingestarFuente(req.body, req.usuario?._id || req.usuario?.id);
+      const totalFragmentos = fuente.fragmentos ? fuente.fragmentos.length : 0;
       res.status(201).json({
         success: true,
-        message: 'Fuente institucional procesada e indexada para la IA',
-        datos: fuente
+        message: 'Documento normativo procesado, fragmentado e indexado exitosamente para la IA',
+        totalFragmentos,
+        datos: fuente,
+        fuente: {
+          id: fuente._id?.toString() || fuente.id,
+          _id: fuente._id,
+          titulo: fuente.titulo,
+          categoria: fuente.categoria,
+          descripcion: fuente.descripcion,
+          version: fuente.version,
+          activo: fuente.activo,
+          enlaceUrl: fuente.enlaceUrl,
+          totalFragmentos,
+          createdAt: fuente.createdAt,
+          updatedAt: fuente.updatedAt
+        }
       });
     } catch (error) {
       next(error);
@@ -180,7 +195,8 @@ export const adminController = {
       res.json({
         success: true,
         total: fuentes.length,
-        datos: fuentes
+        datos: fuentes,
+        fuentes: fuentes
       });
     } catch (error) {
       next(error);
@@ -192,7 +208,8 @@ export const adminController = {
       const fuente = await adminOrchestrator.obtenerFuente(req.params.id);
       res.json({
         success: true,
-        datos: fuente
+        datos: fuente,
+        fuente: fuente
       });
     } catch (error) {
       next(error);
@@ -205,7 +222,8 @@ export const adminController = {
       res.json({
         success: true,
         message: 'Fuente institucional actualizada correctamente',
-        datos: fuente
+        datos: fuente,
+        fuente: fuente
       });
     } catch (error) {
       next(error);

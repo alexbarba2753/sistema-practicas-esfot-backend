@@ -14,12 +14,12 @@ export const fuenteService = {
     }
 
     // Si no se envio titulo, extraer la primera linea con # o usar nombre del archivo
-    if (!titulo) {
+    if (!titulo || (typeof titulo === 'string' && !titulo.trim())) {
       const lineaH1 = contenido.split('\n').find((l) => l.startsWith('# '));
       titulo = lineaH1 ? lineaH1.replace(/^#\s+/, '').trim() : (nombreArchivo || 'Documento Normativo Institucional');
     }
 
-    if (!descripcion) {
+    if (!descripcion || (typeof descripcion === 'string' && !descripcion.trim())) {
       descripcion = `Documento normativo institucional (${categoria || 'reglamento'})`;
     }
 
