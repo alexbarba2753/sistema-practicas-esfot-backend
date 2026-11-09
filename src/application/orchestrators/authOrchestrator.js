@@ -46,11 +46,7 @@ export const authOrchestrator = {
       success: true,
       message: 'Inicio de sesión exitoso',
       token,
-      usuario: usuarioDTO,
-      datos: {
-        token,
-        usuario: usuarioDTO
-      }
+      usuario: usuarioDTO
     };
   },
 
