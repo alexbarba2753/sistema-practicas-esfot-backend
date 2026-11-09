@@ -46,11 +46,11 @@ const usuarioSchema = new mongoose.Schema(
       enum: Object.values(ESTADOS_USUARIO),
       default: ESTADOS_USUARIO.ACTIVO
     },
-    resetPasswordToken: {
+    token: {
       type: String,
       default: null
     },
-    resetPasswordExpires: {
+    tokenExpiracion: {
       type: Date,
       default: null
     }
@@ -71,12 +71,12 @@ usuarioSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Ocultar password y campos de reseteo al serializar a JSON
+// Ocultar password y token temporal al serializar a JSON
 usuarioSchema.methods.toJSON = function () {
   const usuario = this.toObject();
   delete usuario.password;
-  delete usuario.resetPasswordToken;
-  delete usuario.resetPasswordExpires;
+  delete usuario.token;
+  delete usuario.tokenExpiracion;
   return usuario;
 };
 

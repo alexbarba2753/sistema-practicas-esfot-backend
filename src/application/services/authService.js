@@ -77,8 +77,8 @@ export const authService = {
       { expiresIn: ENV.JWT_RESET_EXPIRES_IN }
     );
 
-    usuario.resetPasswordToken = resetToken;
-    usuario.resetPasswordExpires = new Date(Date.now() + 3600000);
+    usuario.token = resetToken;
+    usuario.tokenExpiracion = new Date(Date.now() + 3600000);
     await usuario.save();
 
     await emailAdapter.enviarCorreoRecuperacion(usuario.correo, resetToken);
@@ -86,9 +86,7 @@ export const authService = {
     return {
       success: true,
       message: 'Si el correo está registrado, se enviará un enlace de recuperación',
-      resetToken,
-      token: resetToken,
-      ...(ENV.NODE_ENV === 'development' && { tokenDev: resetToken })
+      token: resetToken
     };
   },
 
@@ -111,13 +109,13 @@ export const authService = {
 
     const usuario = await usuarioService.buscarPorId(decoded.id);
 
-    if (usuario.resetPasswordToken !== token || usuario.resetPasswordExpires < new Date()) {
-      throw errorHttp('El token ya fue utilizado o ha expirado', 400);
+    if (!usuario.token || usuario.token !== token || usuario.tokenExpiracion < new Date()) {
+      throw errorHttp('El enlace de recuperación es inválido, ya fue utilizado o ha expirado', 400);
     }
 
     usuario.password = nuevoPassword;
-    usuario.resetPasswordToken = null;
-    usuario.resetPasswordExpires = null;
+    usuario.token = null;
+    usuario.tokenExpiracion = null;
     await usuario.save();
 
     return {
