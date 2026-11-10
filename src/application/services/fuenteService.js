@@ -107,13 +107,5 @@ export const fuenteService = {
     fuente.activo = Boolean(activo);
     await fuente.save();
     return fuente;
-  },
-
-  async eliminarFuente(id) {
-    const fuente = await FuenteInstitucional.findById(id);
-    if (!fuente) throw errorHttp('Documento o fuente no encontrada', 404);
-
-    await FuenteInstitucional.findByIdAndDelete(id);
-    return { success: true, message: 'Documento normativo eliminado correctamente' };
   }
 };

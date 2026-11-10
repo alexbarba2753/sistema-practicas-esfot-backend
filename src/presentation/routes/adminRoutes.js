@@ -32,6 +32,5 @@ router.get('/fuentes', adminController.listarFuentes);
 router.get('/fuentes/:id', adminController.obtenerFuente);
 router.put('/fuentes/:id', procesarArchivoNormativo, adminController.actualizarFuente);
 router.patch('/fuentes/:id/estado', adminController.cambiarEstadoFuente);
-router.delete('/fuentes/:id', adminController.eliminarFuente);
 
 export default router;

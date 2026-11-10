@@ -242,14 +242,5 @@ export const adminController = {
     } catch (error) {
       next(error);
     }
-  },
-
-  async eliminarFuente(req, res, next) {
-    try {
-      const resultado = await adminOrchestrator.eliminarFuente(req.params.id);
-      res.json(resultado);
-    } catch (error) {
-      next(error);
-    }
   }
 };

@@ -87,10 +87,5 @@ export const adminOrchestrator = {
   // activa o desactiva un documento normativo para que el asistente lo use o lo ignore
   async cambiarEstadoFuente(id, activo) {
     return await fuenteService.cambiarEstadoFuente(id, activo);
-  },
-
-  // borra del sistema una normativa institucional que ya no este vigente
-  async eliminarFuente(id) {
-    return await fuenteService.eliminarFuente(id);
   }
 };
