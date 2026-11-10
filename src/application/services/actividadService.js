@@ -1,6 +1,7 @@
 import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
 import { ActividadLaboral } from '../../infrastructure/database/models/ActividadLaboral.js';
 import { ActividadComunitaria } from '../../infrastructure/database/models/ActividadComunitaria.js';
+import { ConvalidacionCertificado } from '../../infrastructure/database/models/ConvalidacionCertificado.js';
 import { ESTADOS_ACTIVIDAD, ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 import { validarJornadaLaboral, validarActividadComunitariaDatos } from '../../domain/utils/validarActividad.js';
@@ -32,12 +33,34 @@ export const actividadService = {
       }
     }
 
+    // Integracion de certificados externos de convalidacion (Cisco, Udemy, etc.)
+    const certificados = await ConvalidacionCertificado.find({ aulaVirtual: aulaId });
+    let horasConvalidadasAprobadas = 0;
+    let horasConvalidadasPendientes = 0;
+
+    for (const cert of certificados) {
+      if (cert.estado === 'aprobada') {
+        const acreditadas = cert.horasAcreditadas !== undefined && cert.horasAcreditadas !== null
+          ? cert.horasAcreditadas
+          : cert.horasCertificadas;
+        horasAprobadas += acreditadas;
+        horasConvalidadasAprobadas += acreditadas;
+      } else if (cert.estado === 'pendiente') {
+        horasPendientes += cert.horasCertificadas;
+        horasConvalidadasPendientes += cert.horasCertificadas;
+      } else if (cert.estado === 'rechazada') {
+        horasRechazadas += cert.horasCertificadas;
+      }
+    }
+
     const porcentaje = Math.min(100, Math.round((horasAprobadas / aula.horasRequeridas) * 100));
 
     return {
       horasAprobadas,
       horasPendientes,
       horasRechazadas,
+      horasConvalidadasAprobadas,
+      horasConvalidadasPendientes,
       totalRegistradas: horasAprobadas + horasPendientes,
       horasRequeridas: aula.horasRequeridas,
       horasRestantes: Math.max(0, aula.horasRequeridas - horasAprobadas),

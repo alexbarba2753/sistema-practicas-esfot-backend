@@ -77,7 +77,8 @@ export const docenteController = {
       res.json({
         success: true,
         message: 'Certificado evaluado correctamente por el docente tutor',
-        certificado: resultado
+        certificado: resultado,
+        resumenHoras: resultado._doc?.resumenHoras || resultado.resumenHoras
       });
     } catch (error) {
       next(error);
