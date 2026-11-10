@@ -42,8 +42,8 @@ export const estudianteController = {
 
   async actualizarActividadLaboral(req, res, next) {
     try {
-      const { actividadId } = req.params;
-      const resultado = await estudianteOrchestrator.actualizarActividadLaboral(req.usuario.id, actividadId, req.body);
+      const { actividadId, aulaId } = req.params;
+      const resultado = await estudianteOrchestrator.actualizarActividadLaboral(req.usuario.id, actividadId, req.body, aulaId);
       res.json(resultado);
     } catch (error) {
       next(error);
@@ -72,8 +72,8 @@ export const estudianteController = {
 
   async actualizarActividadComunitaria(req, res, next) {
     try {
-      const { actividadId } = req.params;
-      const resultado = await estudianteOrchestrator.actualizarActividadComunitaria(req.usuario.id, actividadId, req.body);
+      const { actividadId, aulaId } = req.params;
+      const resultado = await estudianteOrchestrator.actualizarActividadComunitaria(req.usuario.id, actividadId, req.body, aulaId);
       res.json(resultado);
     } catch (error) {
       next(error);
@@ -102,8 +102,8 @@ export const estudianteController = {
 
   async actualizarCertificado(req, res, next) {
     try {
-      const { certificadoId } = req.params;
-      const resultado = await estudianteOrchestrator.actualizarCertificado(req.usuario.id, certificadoId, req.body);
+      const { certificadoId, aulaId } = req.params;
+      const resultado = await estudianteOrchestrator.actualizarCertificado(req.usuario.id, certificadoId, req.body, aulaId);
       res.json(resultado);
     } catch (error) {
       next(error);

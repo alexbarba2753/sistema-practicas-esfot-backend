@@ -114,12 +114,16 @@ export const convalidacionService = {
   },
 
   // Permite al estudiante actualizar un certificado externo siempre que no haya sido aprobado
-  async actualizarCertificado(estudianteId, certificadoId, datos) {
+  async actualizarCertificado(estudianteId, certificadoId, datos, aulaIdOpcional = null) {
     const certificado = await ConvalidacionCertificado.findById(certificadoId);
     if (!certificado) throw errorHttp('Certificado no encontrado', 404);
 
     if (certificado.estudiante?.toString() !== estudianteId.toString()) {
       throw errorHttp('No tienes permiso para modificar este certificado', 403);
+    }
+
+    if (aulaIdOpcional && certificado.aulaVirtual?.toString() !== aulaIdOpcional.toString()) {
+      throw errorHttp('El certificado no pertenece al aula virtual especificada', 400);
     }
 
     if (certificado.estado === 'aprobada') {

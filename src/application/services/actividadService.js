@@ -152,12 +152,16 @@ export const actividadService = {
   },
 
   // Permite al estudiante actualizar una jornada laboral siempre que no haya sido aprobada
-  async actualizarActividadLaboral(estudianteId, actividadId, datos) {
+  async actualizarActividadLaboral(estudianteId, actividadId, datos, aulaIdOpcional = null) {
     const actividad = await ActividadLaboral.findById(actividadId);
     if (!actividad) throw errorHttp('Actividad laboral no encontrada', 404);
 
     if (actividad.estudiante?.toString() !== estudianteId.toString()) {
       throw errorHttp('No tienes permiso para modificar esta actividad laboral', 403);
+    }
+
+    if (aulaIdOpcional && actividad.aulaVirtual?.toString() !== aulaIdOpcional.toString()) {
+      throw errorHttp('La actividad laboral no pertenece al aula virtual especificada', 400);
     }
 
     if (actividad.estadoAprobacion === ESTADOS_ACTIVIDAD.APROBADO) {
@@ -284,12 +288,16 @@ export const actividadService = {
   },
 
   // Permite al estudiante actualizar una actividad comunitaria siempre que no haya sido aprobada
-  async actualizarActividadComunitaria(estudianteId, actividadId, datos) {
+  async actualizarActividadComunitaria(estudianteId, actividadId, datos, aulaIdOpcional = null) {
     const actividad = await ActividadComunitaria.findById(actividadId);
     if (!actividad) throw errorHttp('Actividad comunitaria no encontrada', 404);
 
     if (actividad.estudiante?.toString() !== estudianteId.toString()) {
       throw errorHttp('No tienes permiso para modificar esta actividad comunitaria', 403);
+    }
+
+    if (aulaIdOpcional && actividad.aulaVirtual?.toString() !== aulaIdOpcional.toString()) {
+      throw errorHttp('La actividad comunitaria no pertenece al aula virtual especificada', 400);
     }
 
     if (actividad.estadoAprobacion === ESTADOS_ACTIVIDAD.APROBADO) {

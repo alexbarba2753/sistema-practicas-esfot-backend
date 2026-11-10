@@ -118,6 +118,20 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
         descripcion: 'Capacitacion actualizada'
       });
     });
+
+    it('debe permitir actualizar pasando aulaId si coincide con el aula de la actividad', async () => {
+      const mockActualizada = {
+        success: true,
+        message: 'Jornada laboral actualizada exitosamente',
+        actividad: { _id: 'act101', horas: 7 }
+      };
+
+      jest.spyOn(actividadService, 'actualizarActividadLaboral').mockResolvedValue(mockActualizada);
+
+      const resultado = await estudianteOrchestrator.actualizarActividadLaboral('est123', 'act101', { horas: 7 }, 'aulaLaboral101');
+      expect(resultado.success).toBe(true);
+      expect(actividadService.actualizarActividadLaboral).toHaveBeenCalledWith('est123', 'act101', { horas: 7 }, 'aulaLaboral101');
+    });
   });
 
   describe('Convalidacion de certificados de cursos externos', () => {

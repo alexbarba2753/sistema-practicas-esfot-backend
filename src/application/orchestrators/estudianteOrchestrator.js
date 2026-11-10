@@ -26,7 +26,10 @@ export const estudianteOrchestrator = {
   },
 
   // modifica una jornada laboral registrada en la bitacora antes de que el docente la apruebe
-  async actualizarActividadLaboral(estudianteId, actividadId, datos) {
+  async actualizarActividadLaboral(estudianteId, actividadId, datos, aulaId) {
+    if (aulaId) {
+      return await actividadService.actualizarActividadLaboral(estudianteId, actividadId, datos, aulaId);
+    }
     return await actividadService.actualizarActividadLaboral(estudianteId, actividadId, datos);
   },
 
@@ -41,7 +44,10 @@ export const estudianteOrchestrator = {
   },
 
   // edita los datos o evidencias de una actividad comunitaria pendiente de aprobacion
-  async actualizarActividadComunitaria(estudianteId, actividadId, datos) {
+  async actualizarActividadComunitaria(estudianteId, actividadId, datos, aulaId) {
+    if (aulaId) {
+      return await actividadService.actualizarActividadComunitaria(estudianteId, actividadId, datos, aulaId);
+    }
     return await actividadService.actualizarActividadComunitaria(estudianteId, actividadId, datos);
   },
 
@@ -56,7 +62,10 @@ export const estudianteOrchestrator = {
   },
 
   // actualiza la informacion de un curso externo o certificado enviado a convalidacion
-  async actualizarCertificado(estudianteId, certificadoId, datos) {
+  async actualizarCertificado(estudianteId, certificadoId, datos, aulaId) {
+    if (aulaId) {
+      return await convalidacionService.actualizarCertificado(estudianteId, certificadoId, datos, aulaId);
+    }
     return await convalidacionService.actualizarCertificado(estudianteId, certificadoId, datos);
   },
 
