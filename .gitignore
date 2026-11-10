@@ -1,6 +1,7 @@
 node_modules/
 .env
 archivos_descargados/
+documentacion/
 npm-debug.log*
 .DS_Store
 coverage/

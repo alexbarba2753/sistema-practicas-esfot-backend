@@ -50,7 +50,7 @@ export const initDatabase = async () => {
       'convalidaciones_certificados',
       'fuentes_institucionales',
       'formularios_pendientes',
-      'formularios_aprobacion'
+      'formularios_aprobaciones'
     ];
 
     const coleccionesExistentes = await db.listCollections().toArray();
