@@ -40,6 +40,16 @@ export const estudianteController = {
     }
   },
 
+  async actualizarActividadLaboral(req, res, next) {
+    try {
+      const { actividadId } = req.params;
+      const resultado = await estudianteOrchestrator.actualizarActividadLaboral(req.usuario.id, actividadId, req.body);
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async crearActividadComunitaria(req, res, next) {
     try {
       const { aulaId } = req.params;
@@ -60,6 +70,16 @@ export const estudianteController = {
     }
   },
 
+  async actualizarActividadComunitaria(req, res, next) {
+    try {
+      const { actividadId } = req.params;
+      const resultado = await estudianteOrchestrator.actualizarActividadComunitaria(req.usuario.id, actividadId, req.body);
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async registrarCertificado(req, res, next) {
     try {
       const { aulaId } = req.params;
@@ -74,6 +94,16 @@ export const estudianteController = {
     try {
       const { aulaId } = req.params;
       const resultado = await estudianteOrchestrator.listarCertificados(aulaId);
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async actualizarCertificado(req, res, next) {
+    try {
+      const { certificadoId } = req.params;
+      const resultado = await estudianteOrchestrator.actualizarCertificado(req.usuario.id, certificadoId, req.body);
       res.json(resultado);
     } catch (error) {
       next(error);

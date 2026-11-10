@@ -25,6 +25,11 @@ export const estudianteOrchestrator = {
     return await actividadService.listarActividadesLaborales(aulaId, filtros);
   },
 
+  // modifica una jornada laboral registrada en la bitacora antes de que el docente la apruebe
+  async actualizarActividadLaboral(estudianteId, actividadId, datos) {
+    return await actividadService.actualizarActividadLaboral(estudianteId, actividadId, datos);
+  },
+
   // guarda una actividad de servicio comunitario con la institucion y beneficiarios
   async crearActividadComunitaria(estudianteId, aulaId, datos) {
     return await actividadService.crearActividadComunitaria(estudianteId, aulaId, datos);
@@ -35,6 +40,11 @@ export const estudianteOrchestrator = {
     return await actividadService.listarActividadesComunitarias(aulaId, filtros);
   },
 
+  // edita los datos o evidencias de una actividad comunitaria pendiente de aprobacion
+  async actualizarActividadComunitaria(estudianteId, actividadId, datos) {
+    return await actividadService.actualizarActividadComunitaria(estudianteId, actividadId, datos);
+  },
+
   // sube un certificado de cursos externos para solicitar convalidacion de horas
   async registrarCertificado(estudianteId, aulaId, datos) {
     return await convalidacionService.registrarCertificado(estudianteId, aulaId, datos);
@@ -43,6 +53,11 @@ export const estudianteOrchestrator = {
   // lista todos los certificados que el estudiante ha enviado a convalidacion
   async listarCertificados(aulaId) {
     return await convalidacionService.listarCertificados(aulaId);
+  },
+
+  // actualiza la informacion de un curso externo o certificado enviado a convalidacion
+  async actualizarCertificado(estudianteId, certificadoId, datos) {
+    return await convalidacionService.actualizarCertificado(estudianteId, certificadoId, datos);
   },
 
   // consulta los datos que tiene guardados en su formulario de informe fcp-001a

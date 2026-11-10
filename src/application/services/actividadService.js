@@ -151,6 +151,78 @@ export const actividadService = {
     };
   },
 
+  // Permite al estudiante actualizar una jornada laboral siempre que no haya sido aprobada
+  async actualizarActividadLaboral(estudianteId, actividadId, datos) {
+    const actividad = await ActividadLaboral.findById(actividadId);
+    if (!actividad) throw errorHttp('Actividad laboral no encontrada', 404);
+
+    if (actividad.estudiante?.toString() !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para modificar esta actividad laboral', 403);
+    }
+
+    if (actividad.estadoAprobacion === ESTADOS_ACTIVIDAD.APROBADO) {
+      throw errorHttp('No se puede modificar una actividad que ya ha sido aprobada', 400);
+    }
+
+    const aula = await AulaVirtual.findById(actividad.aulaVirtual);
+    if (!aula || aula.estado !== ESTADOS_AULA.ABIERTA) {
+      throw errorHttp('El aula virtual se encuentra cerrada; no se permiten modificaciones', 400);
+    }
+
+    if (aula.expedienteEntregado) {
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden modificar actividades', 400);
+    }
+
+    const fechaBase = datos.fecha || (actividad.fecha instanceof Date ? actividad.fecha.toISOString().split('T')[0] : actividad.fecha);
+    const datosParaValidar = {
+      fecha: fechaBase,
+      horaEntrada: datos.horaEntrada || actividad.horaEntrada,
+      horaSalida: datos.horaSalida || actividad.horaSalida,
+      horas: datos.horas !== undefined ? datos.horas : actividad.horas,
+      descripcion: datos.descripcion || actividad.descripcion
+    };
+
+    const resumenPrevio = await this.calcularHorasAula(aula._id);
+    const datosValidados = validarJornadaLaboral(datosParaValidar, aula, resumenPrevio);
+
+    const anio = datosValidados.fechaObj.getUTCFullYear();
+    const mes = datosValidados.fechaObj.getUTCMonth();
+    const dia = datosValidados.fechaObj.getUTCDate();
+    const inicioDia = new Date(Date.UTC(anio, mes, dia, 0, 0, 0, 0));
+    const finDia = new Date(Date.UTC(anio, mes, dia, 23, 59, 59, 999));
+
+    const bitacoraExistente = await ActividadLaboral.findOne({
+      aulaVirtual: aula._id,
+      _id: { $ne: actividadId },
+      fecha: { $gte: inicioDia, $lte: finDia }
+    });
+
+    if (bitacoraExistente) {
+      throw errorHttp(
+        `Ya existe otra jornada laboral registrada para la fecha ${datosValidados.fechaObj.toISOString().split('T')[0]}`,
+        400
+      );
+    }
+
+    actividad.fecha = datosValidados.fechaObj;
+    actividad.horaEntrada = datosValidados.horaEntrada;
+    actividad.horaSalida = datosValidados.horaSalida;
+    actividad.horas = datosValidados.horas;
+    actividad.descripcion = datosValidados.descripcion;
+    actividad.estadoAprobacion = ESTADOS_ACTIVIDAD.PENDIENTE;
+    actividad.observacionesTutor = '';
+
+    await actividad.save();
+    const resumenActualizado = await this.calcularHorasAula(aula._id);
+
+    return {
+      success: true,
+      message: 'Jornada laboral actualizada exitosamente',
+      actividad,
+      resumenHoras: resumenActualizado
+    };
+  },
+
   // Registra una actividad de servicio comunitario
   async crearActividadComunitaria(estudianteId, aulaId, datos) {
     const aula = await AulaVirtual.findById(aulaId);
@@ -208,6 +280,59 @@ export const actividadService = {
       total: actividades.length,
       actividades,
       resumenHoras: resumen
+    };
+  },
+
+  // Permite al estudiante actualizar una actividad comunitaria siempre que no haya sido aprobada
+  async actualizarActividadComunitaria(estudianteId, actividadId, datos) {
+    const actividad = await ActividadComunitaria.findById(actividadId);
+    if (!actividad) throw errorHttp('Actividad comunitaria no encontrada', 404);
+
+    if (actividad.estudiante?.toString() !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para modificar esta actividad comunitaria', 403);
+    }
+
+    if (actividad.estadoAprobacion === ESTADOS_ACTIVIDAD.APROBADO) {
+      throw errorHttp('No se puede modificar una actividad que ya ha sido aprobada', 400);
+    }
+
+    const aula = await AulaVirtual.findById(actividad.aulaVirtual);
+    if (!aula || aula.estado !== ESTADOS_AULA.ABIERTA) {
+      throw errorHttp('El aula virtual se encuentra cerrada; no se permiten modificaciones', 400);
+    }
+
+    if (aula.expedienteEntregado) {
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden modificar actividades', 400);
+    }
+
+    const fechaBase = datos.fecha || (actividad.fecha instanceof Date ? actividad.fecha.toISOString().split('T')[0] : actividad.fecha);
+    const datosParaValidar = {
+      comunidadOInstitucion: datos.comunidadOInstitucion || actividad.comunidadOInstitucion,
+      horas: datos.horas !== undefined ? datos.horas : actividad.horas,
+      descripcion: datos.descripcion || actividad.descripcion,
+      fecha: fechaBase
+    };
+
+    const resumenPrevio = await this.calcularHorasAula(aula._id);
+    const datosValidados = validarActividadComunitariaDatos(datosParaValidar, aula, resumenPrevio);
+
+    actividad.comunidadOInstitucion = datosValidados.comunidadOInstitucion;
+    actividad.horas = datosValidados.horas;
+    actividad.descripcion = datosValidados.descripcion;
+    if (datosValidados.fechaObj) actividad.fecha = datosValidados.fechaObj;
+    if (datos.beneficiariosAproximados !== undefined) actividad.beneficiariosAproximados = Number(datos.beneficiariosAproximados);
+    if (datos.archivoEvidenciaUrl !== undefined) actividad.archivoEvidenciaUrl = datos.archivoEvidenciaUrl.trim();
+    actividad.estadoAprobacion = ESTADOS_ACTIVIDAD.PENDIENTE;
+    actividad.observacionesTutor = '';
+
+    await actividad.save();
+    const resumenActualizado = await this.calcularHorasAula(aula._id);
+
+    return {
+      success: true,
+      message: 'Actividad comunitaria actualizada exitosamente',
+      actividad,
+      resumenHoras: resumenActualizado
     };
   },
 

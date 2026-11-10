@@ -66,6 +66,58 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       expect(resultado.actividad.horas).toBe(8);
       expect(actividadService.crearActividadLaboral).toHaveBeenCalledTimes(1);
     });
+
+    it('debe actualizar una jornada laboral pendiente en la bitacora', async () => {
+      const mockActualizada = {
+        success: true,
+        message: 'Jornada laboral actualizada exitosamente',
+        actividad: {
+          _id: 'act101',
+          horas: 6,
+          descripcion: 'Actualizacion de modulos y correccion de tests'
+        }
+      };
+
+      jest.spyOn(actividadService, 'actualizarActividadLaboral').mockResolvedValue(mockActualizada);
+
+      const resultado = await estudianteOrchestrator.actualizarActividadLaboral('est123', 'act101', {
+        horas: 6,
+        descripcion: 'Actualizacion de modulos y correccion de tests'
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.actividad.horas).toBe(6);
+      expect(actividadService.actualizarActividadLaboral).toHaveBeenCalledWith('est123', 'act101', {
+        horas: 6,
+        descripcion: 'Actualizacion de modulos y correccion de tests'
+      });
+    });
+
+    it('debe actualizar una actividad comunitaria pendiente', async () => {
+      const mockActualizada = {
+        success: true,
+        message: 'Actividad comunitaria actualizada exitosamente',
+        actividad: {
+          _id: 'com101',
+          horas: 5,
+          descripcion: 'Capacitacion actualizada'
+        }
+      };
+
+      jest.spyOn(actividadService, 'actualizarActividadComunitaria').mockResolvedValue(mockActualizada);
+
+      const resultado = await estudianteOrchestrator.actualizarActividadComunitaria('est123', 'com101', {
+        horas: 5,
+        descripcion: 'Capacitacion actualizada'
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.actividad.horas).toBe(5);
+      expect(actividadService.actualizarActividadComunitaria).toHaveBeenCalledWith('est123', 'com101', {
+        horas: 5,
+        descripcion: 'Capacitacion actualizada'
+      });
+    });
   });
 
   describe('Convalidacion de certificados de cursos externos', () => {
@@ -93,6 +145,32 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       expect(resultado.success).toBe(true);
       expect(resultado.certificado.horasCertificadas).toBe(40);
       expect(convalidacionService.registrarCertificado).toHaveBeenCalledTimes(1);
+    });
+
+    it('debe actualizar un certificado externo pendiente de aprobacion', async () => {
+      const mockActualizado = {
+        success: true,
+        message: 'Certificado actualizado exitosamente y puesto en revision para el docente tutor',
+        certificado: {
+          _id: 'cert01',
+          plataforma: 'Cisco Networking Academy',
+          nombreCurso: 'CCNA: Switching, Routing, and Wireless Essentials',
+          horasCertificadas: 40,
+          estado: 'pendiente'
+        }
+      };
+
+      jest.spyOn(convalidacionService, 'actualizarCertificado').mockResolvedValue(mockActualizado);
+
+      const resultado = await estudianteOrchestrator.actualizarCertificado('est123', 'cert01', {
+        nombreCurso: 'CCNA: Switching, Routing, and Wireless Essentials'
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.certificado.nombreCurso).toContain('Switching');
+      expect(convalidacionService.actualizarCertificado).toHaveBeenCalledWith('est123', 'cert01', {
+        nombreCurso: 'CCNA: Switching, Routing, and Wireless Essentials'
+      });
     });
   });
 

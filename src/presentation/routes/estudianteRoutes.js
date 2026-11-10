@@ -18,14 +18,20 @@ router.post('/ia/consulta', estudianteController.consultarAsistenteIa);
 // 3. Bitacora laboral FCP-002
 router.post('/aulas/:aulaId/laborales', estudianteController.crearActividadLaboral);
 router.get('/aulas/:aulaId/laborales', estudianteController.listarActividadesLaborales);
+router.put('/aulas/:aulaId/laborales/:actividadId', estudianteController.actualizarActividadLaboral);
+router.put('/laborales/:actividadId', estudianteController.actualizarActividadLaboral);
 
 // 4. Bitacora comunitaria FCP-002
 router.post('/aulas/:aulaId/comunitarias', estudianteController.crearActividadComunitaria);
 router.get('/aulas/:aulaId/comunitarias', estudianteController.listarActividadesComunitarias);
+router.put('/aulas/:aulaId/comunitarias/:actividadId', estudianteController.actualizarActividadComunitaria);
+router.put('/comunitarias/:actividadId', estudianteController.actualizarActividadComunitaria);
 
 // 5. Convalidacion de certificaciones externas
 router.post('/aulas/:aulaId/convalidaciones', estudianteController.registrarCertificado);
 router.get('/aulas/:aulaId/convalidaciones', estudianteController.listarCertificados);
+router.put('/aulas/:aulaId/convalidaciones/:certificadoId', estudianteController.actualizarCertificado);
+router.put('/convalidaciones/:certificadoId', estudianteController.actualizarCertificado);
 
 // 6. Formulario FCP-001A y reporte asistido por IA
 router.get('/aulas/:aulaId/formulario-pendiente', estudianteController.obtenerFormularioPendiente);
