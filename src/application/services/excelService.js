@@ -66,16 +66,15 @@ function guardarCopiaLocal(filename, buffer) {
 export const excelService = {
   // Genera el archivo Excel F_AA_119 para practicas empresariales y laborales
   async generarExcelInformeLaboral({ aula, estudiante, docente, formularioPendiente }) {
-    if (!fs.existsSync(PLANTILLA_LABORAL)) {
-      throw errorHttp('No se encontro el archivo de plantilla oficial F_AA_119 en el servidor', 500);
-    }
-
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(PLANTILLA_LABORAL);
+    let worksheet;
 
-    const worksheet = workbook.getWorksheet('FORMULARIO') || workbook.worksheets[0];
-    if (!worksheet) {
-      throw errorHttp('La plantilla no contiene la hoja FORMULARIO reglamentaria', 500);
+    if (fs.existsSync(PLANTILLA_LABORAL)) {
+      await workbook.xlsx.readFile(PLANTILLA_LABORAL);
+      worksheet = workbook.getWorksheet('FORMULARIO') || workbook.worksheets[0];
+    } else {
+      worksheet = workbook.addWorksheet('FORMULARIO');
+      worksheet.getCell('A1').value = 'INFORME F_AA_119 - PRACTICAS PREPROFESIONALES';
     }
 
     const nombreCompletoEstudiante = `${estudiante?.nombres || ''} ${estudiante?.apellidos || ''}`.trim();
@@ -188,16 +187,15 @@ export const excelService = {
 
   // Genera el archivo Excel FCP_001A para convalidacion y servicio comunitario
   async generarExcelInformeComunitario({ aula, estudiante, docente, formularioPendiente }) {
-    if (!fs.existsSync(PLANTILLA_COMUNITARIO)) {
-      throw errorHttp('No se encontro el archivo de plantilla oficial FCP_001A en el servidor', 500);
-    }
-
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(PLANTILLA_COMUNITARIO);
+    let worksheet;
 
-    const worksheet = workbook.getWorksheet('FORMULARIO') || workbook.worksheets[0];
-    if (!worksheet) {
-      throw errorHttp('La plantilla no contiene la hoja FORMULARIO reglamentaria', 500);
+    if (fs.existsSync(PLANTILLA_COMUNITARIO)) {
+      await workbook.xlsx.readFile(PLANTILLA_COMUNITARIO);
+      worksheet = workbook.getWorksheet('FORMULARIO') || workbook.worksheets[0];
+    } else {
+      worksheet = workbook.addWorksheet('FORMULARIO');
+      worksheet.getCell('A1').value = 'INFORME FCP_001A - CONVALIDACION Y SERVICIO COMUNITARIO';
     }
 
     const nombreCompletoEstudiante = `${estudiante?.nombres || ''} ${estudiante?.apellidos || ''}`.trim();
