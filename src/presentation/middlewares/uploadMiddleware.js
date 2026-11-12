@@ -1,6 +1,16 @@
+import multer from 'multer';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
-// Middleware ligero para recibir archivos normativos (markdown) por multipart/form-data o json
+const storage = multer.memoryStorage();
+
+export const uploadDocumento = multer({
+  storage,
+  limits: {
+    fileSize: 20 * 1024 * 1024 // 20 MB
+  }
+});
+
+// Middleware para procesar archivos normativos (markdown) por multipart/form-data o json
 export const procesarArchivoNormativo = async (req, res, next) => {
   try {
     const contentType = req.headers['content-type'] || '';

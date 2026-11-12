@@ -95,6 +95,16 @@ export const docenteController = {
     }
   },
 
+  async evaluarSeguimientoDocente(req, res, next) {
+    try {
+      const { aulaId } = req.params;
+      const resultado = await docenteOrchestrator.evaluarSeguimientoDocente(aulaId, req.usuario.id, req.body);
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async cerrarPractica(req, res, next) {
     try {
       const { aulaId } = req.params;

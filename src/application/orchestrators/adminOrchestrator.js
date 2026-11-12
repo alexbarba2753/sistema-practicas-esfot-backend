@@ -1,6 +1,7 @@
 import { usuarioService } from '../services/usuarioService.js';
 import { aulaService } from '../services/aulaService.js';
 import { fuenteService } from '../services/fuenteService.js';
+import { expedienteService } from '../services/expedienteService.js';
 
 // orquestador para coordinar las operaciones del administrador
 export const adminOrchestrator = {
@@ -29,9 +30,9 @@ export const adminOrchestrator = {
     return await usuarioService.cambiarEstadoUsuario(id, estado);
   },
 
-  // crea una nueva aula virtual para asignar al estudiante con su tutor correspondiente
-  async crearAula(datos) {
-    return await aulaService.crearAula(datos);
+  // crea una nueva aula virtual para asignar al estudiante con su tutor, procesando opcionalmente la carta o excel inicial
+  async crearAula(datos, archivo = null) {
+    return await aulaService.crearAula(datos, archivo);
   },
 
   // lista las aulas virtuales registradas segun el periodo o la modalidad laboral o comunitaria
@@ -62,6 +63,16 @@ export const adminOrchestrator = {
   // quita al estudiante asignado si hubo algun cambio de aula o cancelacion
   async desasignarEstudiante(aulaId) {
     return await aulaService.desasignarEstudiante(aulaId);
+  },
+
+  // lista los expedientes entregados por tutores para dictamen y resolucion de la comision
+  async listarExpedientesPendientesComision() {
+    return await expedienteService.listarExpedientesPendientesComision();
+  },
+
+  // emite el dictamen final de la comision aprobando la practica o devolviendo al tutor con observaciones
+  async dictamenFinalComision(aulaId, adminId, datos) {
+    return await expedienteService.dictamenFinalComision(aulaId, adminId, datos);
   },
 
   // procesa y sube un nuevo reglamento o normativa institucional dividiendolo en partes

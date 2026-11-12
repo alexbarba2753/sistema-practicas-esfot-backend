@@ -3,6 +3,7 @@ import { adminOrchestrator } from '../src/application/orchestrators/adminOrchest
 import { usuarioService } from '../src/application/services/usuarioService.js';
 import { aulaService } from '../src/application/services/aulaService.js';
 import { fuenteService } from '../src/application/services/fuenteService.js';
+import { expedienteService } from '../src/application/services/expedienteService.js';
 import { ROLES, MODALIDADES, HORAS_REGLAMENTARIAS } from '../src/domain/constants/practicasConstants.js';
 
 describe('Pruebas del modulo Administrador (adminOrchestrator)', () => {
@@ -118,6 +119,52 @@ describe('Pruebas del modulo Administrador (adminOrchestrator)', () => {
 
       expect(resultado.titulo).toContain('RRA');
       expect(fuenteService.ingestarFuente).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Dictamen y resolucion de comision sobre expedientes', () => {
+    it('debe listar los expedientes pendientes de revision por comision', async () => {
+      const mockExpedientes = [
+        {
+          _id: 'aula001',
+          nombre: 'Practica Laboral - Estudiante 1',
+          formularioPendiente: { estado: 'pendiente_comision' }
+        }
+      ];
+
+      jest.spyOn(expedienteService, 'listarExpedientesPendientesComision').mockResolvedValue(mockExpedientes);
+
+      const resultado = await adminOrchestrator.listarExpedientesPendientesComision();
+
+      expect(resultado).toHaveLength(1);
+      expect(resultado[0].formularioPendiente.estado).toBe('pendiente_comision');
+      expect(expedienteService.listarExpedientesPendientesComision).toHaveBeenCalledTimes(1);
+    });
+
+    it('debe registrar el dictamen final de la comision aprobando el expediente', async () => {
+      const mockDictamen = {
+        success: true,
+        message: 'Dictamen de comision procesado exitosamente (aprobado).',
+        formularioEstado: 'aprobado',
+        actaAprobacion: { _id: 'acta01', dictamen: 'Favorable' },
+        aulaEstado: 'cerrada'
+      };
+
+      jest.spyOn(expedienteService, 'dictamenFinalComision').mockResolvedValue(mockDictamen);
+
+      const resultado = await adminOrchestrator.dictamenFinalComision('aula001', 'adminId', {
+        aprobado: true,
+        resolucionNumero: 'RES-CPP-2026-001',
+        observaciones: 'Cumple con todos los requisitos normativos'
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.formularioEstado).toBe('aprobado');
+      expect(expedienteService.dictamenFinalComision).toHaveBeenCalledWith('aula001', 'adminId', {
+        aprobado: true,
+        resolucionNumero: 'RES-CPP-2026-001',
+        observaciones: 'Cumple con todos los requisitos normativos'
+      });
     });
   });
 });

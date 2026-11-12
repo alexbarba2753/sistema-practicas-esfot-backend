@@ -49,6 +49,11 @@ export const docenteOrchestrator = {
     return await expedienteService.obtenerFormularioPendiente(aulaId);
   },
 
+  // registra las 3 actividades de seguimiento obligatorio y la evaluacion cualitativa del tutor (punto 6/9)
+  async evaluarSeguimientoDocente(aulaId, docenteId, datos) {
+    return await expedienteService.evaluarSeguimientoDocente(aulaId, docenteId, datos);
+  },
+
   // emite la calificacion final sobre 20, aprueba la practica y genera el acta oficial fcp-004
   async cerrarPractica(aulaId, docenteId, datos) {
     return await expedienteService.cerrarProcesoDocente(aulaId, docenteId, datos);

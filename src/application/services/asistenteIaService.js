@@ -126,8 +126,19 @@ export const asistenteIaService = {
 
     formulario.totalHoras = totalHoras;
     formulario.contenidoIa.principalesActividades = descripciones.slice(0, 1000);
-    formulario.contenidoIa.asignaturasUtilidad = 'Sistemas de Informacion, Ingenieria de Software, Bases de Datos, Redes de Comunicacion';
-    formulario.contenidoIa.habilidadesAdquiridas = 'Manejo de arquitecturas modernas, desarrollo de software, pruebas unitarias y trabajo en equipo';
+    formulario.contenidoIa.asignaturasUtilidad =
+      'Programación Orientada a Objetos (TDSD214): Estructuras de control y servicios; Bases de Datos (TDSD224): Modelado y persistencia; Ingeniería de Software (TDSD314): Arquitectura y pruebas; Metodologías Ágiles (TDSD324): Gestión ágil de proyectos.';
+    formulario.contenidoIa.habilidadesAdquiridas =
+      'Desarrollo de servicios backend RESTful, persistencia de datos relacional y documental, aplicación de buenas prácticas de arquitectura limpia y trabajo colaborativo.';
+    formulario.contenidoIa.observacionesTemas =
+      'Se fortalecieron competencias en herramientas de versionamiento profesional, pruebas unitarias y despliegue de soluciones tecnológicas alineadas al perfil de egreso.';
+    formulario.contenidoIa.resumenActividades = descripciones.slice(0, 800);
+    formulario.contenidoIa.contribucionConocimientos =
+      'Las actividades técnicas permitieron consolidar el razonamiento lógico, diseño modular y aseguramiento de calidad del software en entornos reales.';
+    formulario.contenidoIa.resultadosAprendizaje =
+      'Capacidad para diseñar, desarrollar, verificar y documentar sistemas informáticos que resuelven necesidades institucionales.';
+    formulario.contenidoIa.asignaturasMalla =
+      'TDSD114 Fundamentos de Programación, TDSD214 Programación Orientada a Objetos, TDSD224 Bases de Datos, TDSD314 Ingeniería de Software.';
     formulario.fechaGeneracionIa = new Date();
 
     await formulario.save();

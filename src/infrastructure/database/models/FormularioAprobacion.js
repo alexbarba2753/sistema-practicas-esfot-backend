@@ -50,8 +50,21 @@ const formularioAprobacionSchema = new mongoose.Schema(
     },
     estado: {
       type: String,
-      enum: ['en_revision', 'aprobado', 'rechazado'],
+      enum: ['en_revision', 'aprobado', 'rechazado', 'devuelto_a_tutor'],
       default: 'en_revision'
+    },
+    seguimientosEjecutados: [
+      {
+        actividad: { type: String },
+        fecha: { type: Date },
+        resultados: { type: String }
+      }
+    ],
+    comisionPPP: {
+      avalaAprobacion: { type: Boolean, default: true },
+      observaciones: { type: String, default: 'Aprobación reglamentaria avalada por la Comisión de Prácticas.' },
+      revisadoPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
+      fechaAval: { type: Date, default: null }
     },
     fechaEmision: {
       type: Date,

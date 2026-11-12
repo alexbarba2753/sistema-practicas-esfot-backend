@@ -25,8 +25,9 @@ router.put('/actividades/comunitarias/:actividadId/evaluar', docenteController.e
 router.get('/aulas/:aulaId/convalidaciones', docenteController.listarConvalidaciones);
 router.put('/convalidaciones/:certificadoId/evaluar', docenteController.evaluarConvalidacion);
 
-// 5. Revision de formulario FCP-001A
+// 5. Revision y evaluacion de seguimiento del formulario F_AA_119 / FCP-001A
 router.get('/aulas/:aulaId/formulario-pendiente', docenteController.obtenerFormularioPendiente);
+router.put('/aulas/:aulaId/evaluar-formulario', docenteController.evaluarSeguimientoDocente);
 router.get('/aulas/:aulaId/descargar-informe', docenteController.descargarInforme);
 
 // 6. Cierre formal, calificacion y emision de acta FCP-004

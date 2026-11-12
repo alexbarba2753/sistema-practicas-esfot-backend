@@ -23,7 +23,7 @@ const formularioPendienteSchema = new mongoose.Schema(
     },
     estado: {
       type: String,
-      enum: ['borrador', 'en_revision', 'aprobado'],
+      enum: ['borrador', 'en_revision', 'observado', 'pendiente_comision', 'aprobado', 'rechazado'],
       default: 'borrador'
     },
     entidadReceptora: {
@@ -37,12 +37,17 @@ const formularioPendienteSchema = new mongoose.Schema(
       tipoEntidad: { type: String, default: 'Privada' },
       responsable: { type: String, default: '' },
       tutorEmpresarial: { type: String, default: '' },
-      areaAsignada: { type: String, default: '' }
+      tutorGeneral: { type: String, default: '' },
+      tutorEspecifico: { type: String, default: '' },
+      areaAsignada: { type: String, default: '' },
+      campoAmplio: { type: String, default: 'TECNOLOGIAS DE LA INFORMACION Y LA COMUNICACION (TIC)' },
+      campoEspecifico: { type: String, default: 'Tecnologías de la información y la comunicación (TIC)' }
     },
     horarioSemanal: {
       horaInicio: { type: String, default: '08:00' },
       horaFin: { type: String, default: '16:30' },
-      horasSemanales: { type: Number, default: 40 }
+      horasSemanales: { type: Number, default: 40 },
+      observacionesFechas: { type: String, default: '' }
     },
     contenidoIa: {
       asignaturasUtilidad: { type: String, default: '' },
@@ -54,6 +59,35 @@ const formularioPendienteSchema = new mongoose.Schema(
       resultadosAprendizaje: { type: String, default: '' },
       asignaturasMalla: { type: String, default: '' },
       informeGeneradoTexto: { type: String, default: '' }
+    },
+    // Seccion 6 del F_AA_119 / Seccion 9 del FCP_001A (Seguimiento obligatorio del Tutor EPN)
+    seguimientoTutor: {
+      conformidadPlan: { type: Boolean, default: true },
+      observacionesPlan: { type: String, default: 'Las actividades realizadas se cumplen según lo planificado al inicio de la práctica.' },
+      novedades: { type: String, default: 'Las prácticas preprofesionales se llevaron a cabo con normalidad.' },
+      actividadesSeguimiento: [
+        {
+          actividad: { type: String, required: true },
+          fecha: { type: Date, default: Date.now },
+          resultados: { type: String, default: '' }
+        }
+      ],
+      evaluacionCualitativaTutor: {
+        recomiendaEntidad: { type: Boolean, default: true },
+        aportaPerfilEgreso: { type: Boolean, default: true },
+        recomiendaAprobacion: { type: Boolean, default: true }
+      },
+      observacionesMejora: { type: String, default: '' },
+      horasValidadasSugeridas: { type: Number, default: 0 },
+      completadoPorTutor: { type: Boolean, default: false },
+      fechaRevisionTutor: { type: Date, default: null }
+    },
+    // Seccion 7 del F_AA_119 / Seccion 10 del FCP_001A (Dictamen de la Comision de Practicas / Admin)
+    resolucionComision: {
+      avalaAprobacion: { type: Boolean, default: null },
+      observacionesComision: { type: String, default: '' },
+      fechaResolucion: { type: Date, default: null },
+      revisadoPorAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null }
     },
     totalHoras: {
       type: Number,

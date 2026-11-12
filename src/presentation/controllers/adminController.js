@@ -70,7 +70,8 @@ export const adminController = {
   // Aulas Virtuales
   async crearAula(req, res, next) {
     try {
-      const aula = await adminOrchestrator.crearAula(req.body);
+      const archivo = req.file || null;
+      const aula = await adminOrchestrator.crearAula(req.body, archivo);
       res.status(201).json({
         success: true,
         message: 'Aula virtual creada y parametrizada con exito',
@@ -239,6 +240,26 @@ export const adminController = {
         message: 'Vigencia de la fuente actualizada correctamente',
         datos: fuente
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Dictamen y resolucion final de la Comision de Practicas Preprofesionales (CPP)
+  async listarExpedientesPendientesComision(req, res, next) {
+    try {
+      const resultado = await adminOrchestrator.listarExpedientesPendientesComision();
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async dictamenFinalComision(req, res, next) {
+    try {
+      const { aulaId } = req.params;
+      const resultado = await adminOrchestrator.dictamenFinalComision(aulaId, req.usuario.id, req.body);
+      res.json(resultado);
     } catch (error) {
       next(error);
     }

@@ -57,6 +57,24 @@ const aulaVirtualSchema = new mongoose.Schema(
     fechaEntregaExpediente: {
       type: Date,
       default: null
+    },
+    documentoInicial: {
+      tipo: {
+        type: String,
+        enum: ['carta_aceptacion', 'formulario_fcp_001a', 'manual'],
+        default: 'manual'
+      },
+      nombreArchivo: { type: String, default: '' },
+      textoExtraido: { type: String, default: '' },
+      horasExtraidas: { type: Number, default: null }
+    },
+    datosEmpresa: {
+      razonSocial: { type: String, default: '' },
+      responsable: { type: String, default: '' },
+      cargo: { type: String, default: '' },
+      horasDiarias: { type: Number, default: 8 },
+      totalHorasPactadas: { type: Number, default: null },
+      areaAsignada: { type: String, default: '' }
     }
   },
   {

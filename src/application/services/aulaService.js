@@ -1,11 +1,14 @@
 import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
 import { Usuario } from '../../infrastructure/database/models/Usuario.js';
+import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
+import { documentParserService } from './documentParserService.js';
 import { MODALIDADES, ROLES, ESTADOS_AULA, HORAS_REGLAMENTARIAS } from '../../domain/constants/practicasConstants.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
 export const aulaService = {
   // Crea y parametriza un aula virtual garantizando la relacion 1 a 1 entre docente y estudiante
-  async crearAula(datos) {
+  // Permite procesar documentos iniciales (Carta de Aceptacion en Word/PDF o Formulario FCP-001A en Excel)
+  async crearAula(datos, archivo = null) {
     const { nombre, periodo, modalidad, docenteTutor, estudiante, fechaInicio, fechaFin } = datos;
 
     if (!nombre || !periodo || !modalidad || !docenteTutor || !estudiante || !fechaFin) {
@@ -44,9 +47,55 @@ export const aulaService = {
       throw errorHttp('La fecha fin debe ser valida y posterior a la fecha de inicio', 400);
     }
 
-    const horasRequeridas = modalidad === MODALIDADES.LABORAL
+    let horasRequeridas = datos.horasRequeridas
+      ? Number(datos.horasRequeridas)
+      : modalidad === MODALIDADES.LABORAL
       ? HORAS_REGLAMENTARIAS.LABORAL
       : HORAS_REGLAMENTARIAS.COMUNITARIO;
+
+    let docInicial = {
+      tipo: 'manual',
+      nombreArchivo: '',
+      textoExtraido: '',
+      horasExtraidas: null
+    };
+
+    let datosEmpresa = {
+      razonSocial: datos.razonSocial || '',
+      responsable: datos.responsable || '',
+      cargo: datos.cargo || '',
+      horasDiarias: datos.horasDiarias ? Number(datos.horasDiarias) : 8,
+      totalHorasPactadas: null,
+      areaAsignada: datos.areaAsignada || ''
+    };
+
+    // Procesamiento automatico si se sube archivo de respaldo
+    if (archivo && archivo.buffer) {
+      docInicial.nombreArchivo = archivo.originalname || 'documento_inicial';
+      const texto = await documentParserService.extraerTexto(archivo.buffer, archivo.originalname, archivo.mimetype);
+      docInicial.textoExtraido = texto.slice(0, 4000);
+
+      const nombreMin = (archivo.originalname || '').toLowerCase();
+      if (nombreMin.endsWith('.xlsx') || nombreMin.endsWith('.xlsm')) {
+        docInicial.tipo = 'formulario_fcp_001a';
+        const datosExcel = await documentParserService.validarYProcesarExcelFcp001a(archivo.buffer);
+        horasRequeridas = datosExcel.horasSolicitadas;
+        docInicial.horasExtraidas = horasRequeridas;
+        datosEmpresa.razonSocial = datosExcel.razonSocial || datosEmpresa.razonSocial;
+      } else {
+        docInicial.tipo = 'carta_aceptacion';
+        const analizado = documentParserService.analizarCartaAceptacion(texto);
+        if (analizado.totalHoras && analizado.totalHoras > 0) {
+          horasRequeridas = analizado.totalHoras;
+          docInicial.horasExtraidas = analizado.totalHoras;
+          datosEmpresa.totalHorasPactadas = analizado.totalHoras;
+        }
+        if (analizado.horasDiarias) datosEmpresa.horasDiarias = analizado.horasDiarias;
+        if (analizado.razonSocial) datosEmpresa.razonSocial = analizado.razonSocial;
+        if (analizado.areaAsignada) datosEmpresa.areaAsignada = analizado.areaAsignada;
+        if (analizado.cargoEstudiante) datosEmpresa.cargo = analizado.cargoEstudiante;
+      }
+    }
 
     const nuevaAula = new AulaVirtual({
       nombre: nombre.trim(),
@@ -57,10 +106,36 @@ export const aulaService = {
       horasRequeridas,
       fechaInicio: fInicio,
       fechaFin: fFin,
-      estado: ESTADOS_AULA.ABIERTA
+      estado: ESTADOS_AULA.ABIERTA,
+      documentoInicial: docInicial,
+      datosEmpresa
     });
 
     await nuevaAula.save();
+
+    // Inicializar FormularioPendiente prellenado con datos de empresa y horas
+    await FormularioPendiente.findOneAndUpdate(
+      { aulaVirtual: nuevaAula._id },
+      {
+        $setOnInsert: {
+          aulaVirtual: nuevaAula._id,
+          estudiante: alumno._id,
+          modalidad,
+          totalHoras: 0,
+          entidadReceptora: {
+            razonSocial: datosEmpresa.razonSocial || '',
+            areaAsignada: datosEmpresa.areaAsignada || '',
+            responsable: datosEmpresa.responsable || ''
+          },
+          horarioSemanal: {
+            horaInicio: '08:00',
+            horaFin: '16:30',
+            horasSemanales: datosEmpresa.horasDiarias ? datosEmpresa.horasDiarias * 5 : 40
+          }
+        }
+      },
+      { upsert: true, new: true }
+    );
 
     return await this.obtenerAulaPorId(nuevaAula._id);
   },

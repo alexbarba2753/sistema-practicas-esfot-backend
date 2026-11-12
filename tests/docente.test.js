@@ -151,4 +151,37 @@ describe('Pruebas del modulo Docente Tutor (docenteOrchestrator)', () => {
       expect(expedienteService.cerrarProcesoDocente).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('Evaluacion de seguimiento institucional y observaciones del tutor', () => {
+    it('debe registrar el seguimiento docente y remitir el expediente a comision', async () => {
+      const mockResultado = {
+        success: true,
+        message: 'Seguimiento docente registrado y expediente remitido a la Comision de Practicas.',
+        estado: 'pendiente_comision',
+        seguimientoTutor: {
+          satisfaccionObjetivos: 'SI',
+          nivelPreparacionEstudiante: 'SI',
+          recomendacionContinuidad: 'SI'
+        }
+      };
+
+      jest.spyOn(expedienteService, 'evaluarSeguimientoDocente').mockResolvedValue(mockResultado);
+
+      const resultado = await docenteOrchestrator.evaluarSeguimientoDocente('aula201', 'docente123', {
+        seguimientos: [
+          { tipo: 'inicio', fecha: '2026-05-10', descripcion: 'Definicion de metas' },
+          { tipo: 'mitad', fecha: '2026-06-15', descripcion: 'Revision de avance' },
+          { tipo: 'fin', fecha: '2026-07-20', descripcion: 'Evaluacion final' }
+        ],
+        satisfaccionObjetivos: 'SI',
+        nivelPreparacionEstudiante: 'SI',
+        recomendacionContinuidad: 'SI',
+        remitirAComision: true
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.estado).toBe('pendiente_comision');
+      expect(expedienteService.evaluarSeguimientoDocente).toHaveBeenCalledTimes(1);
+    });
+  });
 });
