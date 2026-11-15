@@ -1,3 +1,4 @@
+import readline from 'readline';
 import { connectDB, disconnectDB } from '../db.js';
 import { AulaVirtual } from '../models/AulaVirtual.js';
 import { ActividadLaboral } from '../models/ActividadLaboral.js';
@@ -24,6 +25,19 @@ function calcularHoraSalida(horaEntrada, horas) {
   return `${hh}:${mm}`;
 }
 
+function preguntarTexto(pregunta) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  return new Promise((resolve) => {
+    rl.question(pregunta, (respuesta) => {
+      rl.close();
+      resolve(respuesta.trim());
+    });
+  });
+}
+
 async function obtenerAulaObjetivo(aulaIdArg) {
   if (aulaIdArg) {
     const aula = await AulaVirtual.findById(aulaIdArg);
@@ -33,15 +47,35 @@ async function obtenerAulaObjetivo(aulaIdArg) {
     return aula;
   }
 
-  const aula = await AulaVirtual.findOne({
+  const aulas = await AulaVirtual.find({
     modalidad: MODALIDADES.LABORAL,
     estado: ESTADOS_AULA.ABIERTA
-  }).sort({ createdAt: -1 });
+  })
+    .sort({ createdAt: -1 })
+    .limit(10);
 
-  if (!aula) {
+  if (aulas.length === 0) {
     throw new Error('No se encontró ninguna aula virtual laboral abierta');
   }
-  return aula;
+
+  if (process.stdin.isTTY) {
+    console.log('\nAulas laborales abiertas disponibles:');
+    aulas.forEach((a, idx) => {
+      console.log(`  [${idx + 1}] ${a._id} - ${a.nombre} (${a.horasRequeridas}h)`);
+    });
+    const ingresado = await preguntarTexto(
+      `\nIngresa el ID del aula (Enter para usar la más reciente: ${aulas[0]._id}): `
+    );
+    if (ingresado) {
+      const aulaElegida = await AulaVirtual.findById(ingresado);
+      if (!aulaElegida) {
+        throw new Error(`No se encontró un aula virtual con ID: ${ingresado}`);
+      }
+      return aulaElegida;
+    }
+  }
+
+  return aulas[0];
 }
 
 async function ejecutarSeed(aula) {
@@ -117,7 +151,7 @@ async function ejecutarSeed(aula) {
 async function ejecutarRollback(aula) {
   const resultado = await ActividadLaboral.deleteMany({
     aulaVirtual: aula._id,
-    observacionesTutor: new RegExp(`^\\${MARCA_SEED}`)
+    observacionesTutor: /^\[SEED\]/
   });
 
   console.log(
