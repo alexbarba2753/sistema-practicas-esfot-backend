@@ -23,7 +23,7 @@ const formularioPendienteSchema = new mongoose.Schema(
     },
     estado: {
       type: String,
-      enum: ['borrador', 'en_revision', 'observado', 'pendiente_comision', 'aprobado', 'rechazado'],
+      enum: ['borrador', 'en_revision', 'observado', 'devuelto_a_tutor', 'pendiente_comision', 'aprobado', 'rechazado'],
       default: 'borrador'
     },
     entidadReceptora: {

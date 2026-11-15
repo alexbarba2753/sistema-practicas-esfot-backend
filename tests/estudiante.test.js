@@ -4,6 +4,11 @@ import { expedienteService } from '../src/application/services/expedienteService
 import { actividadService } from '../src/application/services/actividadService.js';
 import { convalidacionService } from '../src/application/services/convalidacionService.js';
 import { asistenteIaService } from '../src/application/services/asistenteIaService.js';
+import { AulaVirtual } from '../src/infrastructure/database/models/AulaVirtual.js';
+import { ActividadLaboral } from '../src/infrastructure/database/models/ActividadLaboral.js';
+import { ActividadComunitaria } from '../src/infrastructure/database/models/ActividadComunitaria.js';
+import { ConvalidacionCertificado } from '../src/infrastructure/database/models/ConvalidacionCertificado.js';
+import { FormularioPendiente } from '../src/infrastructure/database/models/FormularioPendiente.js';
 
 describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
   afterEach(() => {
@@ -219,6 +224,202 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       expect(resultado.success).toBe(true);
       expect(resultado.message).toContain('entregado formalmente');
       expect(expedienteService.entregarExpediente).toHaveBeenCalledWith('aula101', 'est123');
+    });
+  });
+
+  describe('Bloqueo estricto por entrega de expediente (HTTP 403 Forbidden)', () => {
+    it('debe rechazar la creacion de jornada laboral (crearActividadLaboral) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estudiante: 'est123',
+        modalidad: 'laboral',
+        estado: 'abierta',
+        expedienteEntregado: true
+      });
+
+      await expect(
+        estudianteOrchestrator.crearActividadLaboral('est123', 'aula101', {
+          fecha: '2026-10-05',
+          horaEntrada: '08:00',
+          horaSalida: '16:00',
+          horas: 8,
+          descripcion: 'Intento de registro laboral con expediente entregado'
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe rechazar la actualizacion de jornada laboral (actualizarActividadLaboral) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
+      jest.spyOn(ActividadLaboral, 'findById').mockResolvedValue({
+        _id: 'act101',
+        estudiante: 'est123',
+        aulaVirtual: 'aula101',
+        estadoAprobacion: 'pendiente'
+      });
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estudiante: 'est123',
+        modalidad: 'laboral',
+        estado: 'abierta',
+        expedienteEntregado: true
+      });
+
+      await expect(
+        estudianteOrchestrator.actualizarActividadLaboral('est123', 'act101', {
+          horas: 6,
+          descripcion: 'Intento de modificacion laboral con expediente entregado'
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe rechazar la creacion de actividad comunitaria (crearActividadComunitaria) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aulaCom01',
+        estudiante: 'est123',
+        modalidad: 'comunitario',
+        estado: 'abierta',
+        expedienteEntregado: true
+      });
+
+      await expect(
+        estudianteOrchestrator.crearActividadComunitaria('est123', 'aulaCom01', {
+          fecha: '2026-10-06',
+          horas: 4,
+          comunidadOInstitucion: 'Comunidad San Jose',
+          descripcion: 'Intento de registro comunitario con expediente entregado'
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe rechazar la actualizacion de actividad comunitaria (actualizarActividadComunitaria) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
+      jest.spyOn(ActividadComunitaria, 'findById').mockResolvedValue({
+        _id: 'com101',
+        estudiante: 'est123',
+        aulaVirtual: 'aulaCom01',
+        estadoAprobacion: 'pendiente'
+      });
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aulaCom01',
+        estudiante: 'est123',
+        modalidad: 'comunitario',
+        estado: 'abierta',
+        expedienteEntregado: true
+      });
+
+      await expect(
+        estudianteOrchestrator.actualizarActividadComunitaria('est123', 'com101', {
+          horas: 5,
+          descripcion: 'Intento de modificacion comunitaria con expediente entregado'
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe rechazar el registro de certificado de convalidacion (registrarCertificado) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estudiante: 'est123',
+        estado: 'abierta',
+        expedienteEntregado: true
+      });
+
+      await expect(
+        estudianteOrchestrator.registrarCertificado('est123', 'aula101', {
+          plataforma: 'Cisco Networking Academy',
+          nombreCurso: 'CCNA: Enterprise Networking',
+          horasCertificadas: 40
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe rechazar la actualizacion de certificado de convalidacion (actualizarCertificado) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
+      jest.spyOn(ConvalidacionCertificado, 'findById').mockResolvedValue({
+        _id: 'cert101',
+        estudiante: 'est123',
+        aulaVirtual: 'aula101',
+        estado: 'pendiente'
+      });
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estado: 'abierta',
+        expedienteEntregado: true
+      });
+
+      await expect(
+        estudianteOrchestrator.actualizarCertificado('est123', 'cert101', {
+          nombreCurso: 'Curso Modificado'
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe rechazar la actualizacion de formulario pendiente (actualizarFormularioPendiente) con HTTP 403 Forbidden cuando el expediente ya fue entregado y no esta en estado observado', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estudiante: 'est123',
+        modalidad: 'laboral',
+        expedienteEntregado: true
+      });
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        _id: 'form101',
+        aulaVirtual: 'aula101',
+        estudiante: 'est123',
+        estado: 'en_revision'
+      });
+
+      await expect(
+        estudianteOrchestrator.actualizarFormularioPendiente('aula101', 'est123', {
+          entidadReceptora: { nombreEmpresa: 'Intento Empresa' }
+        })
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        message: expect.stringContaining('expediente ya fue entregado')
+      });
+    });
+
+    it('debe permitir la actualizacion de formulario pendiente cuando el expediente fue entregado pero su estado es observado', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estudiante: 'est123',
+        modalidad: 'laboral',
+        expedienteEntregado: true
+      });
+
+      const mockFormulario = {
+        _id: 'form101',
+        aulaVirtual: 'aula101',
+        estudiante: 'est123',
+        estado: 'observado',
+        entidadReceptora: { toObject: () => ({ ruc: '1790012345001' }) },
+        horarioSemanal: { toObject: () => ({}) },
+        contenidoIa: { toObject: () => ({}) },
+        save: jest.fn().mockResolvedValue(true)
+      };
+
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue(mockFormulario);
+
+      const resultado = await estudianteOrchestrator.actualizarFormularioPendiente('aula101', 'est123', {
+        entidadReceptora: { razonSocial: 'Empresa Corregida S.A.' }
+      });
+
+      expect(mockFormulario.save).toHaveBeenCalledTimes(1);
+      expect(resultado.estado).toBe('observado');
+      expect(mockFormulario.entidadReceptora.razonSocial).toBe('Empresa Corregida S.A.');
     });
   });
 });

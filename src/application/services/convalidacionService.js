@@ -19,7 +19,7 @@ export const convalidacionService = {
     }
 
     if (aula.expedienteEntregado) {
-      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir mas certificados', 400);
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir mas certificados', 403);
     }
 
     const { plataforma, nombreCurso, horasCertificadas, codigoCertificado, enlaceCredencial } = datos;
@@ -136,7 +136,7 @@ export const convalidacionService = {
     }
 
     if (aula.expedienteEntregado) {
-      throw errorHttp('El expediente ya fue entregado a revision; no se pueden modificar certificados', 400);
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden modificar certificados', 403);
     }
 
     const { plataforma, nombreCurso, horasCertificadas, codigoCertificado, enlaceCredencial } = datos;

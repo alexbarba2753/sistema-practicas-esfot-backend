@@ -77,6 +77,10 @@ export const expedienteService = {
       });
     }
 
+    if (aula.expedienteEntregado && formulario.estado !== 'observado') {
+      throw errorHttp('El expediente ya fue entregado a revision; no se puede modificar el formulario', 403);
+    }
+
     if (datos.entidadReceptora) {
       formulario.entidadReceptora = { ...formulario.entidadReceptora.toObject(), ...datos.entidadReceptora };
     }

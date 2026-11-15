@@ -87,7 +87,7 @@ export const actividadService = {
     }
 
     if (aula.expedienteEntregado) {
-      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir mas actividades', 400);
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir/modificar actividades', 403);
     }
 
     const resumenPrevio = await this.calcularHorasAula(aulaId);
@@ -174,7 +174,7 @@ export const actividadService = {
     }
 
     if (aula.expedienteEntregado) {
-      throw errorHttp('El expediente ya fue entregado a revision; no se pueden modificar actividades', 400);
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir/modificar actividades', 403);
     }
 
     const fechaBase = datos.fecha || (actividad.fecha instanceof Date ? actividad.fecha.toISOString().split('T')[0] : actividad.fecha);
@@ -244,6 +244,10 @@ export const actividadService = {
       throw errorHttp('El aula virtual se encuentra cerrada; no se permiten nuevos registros', 400);
     }
 
+    if (aula.expedienteEntregado) {
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir mas actividades', 403);
+    }
+
     const resumenPrevio = await this.calcularHorasAula(aulaId);
     const datosValidados = validarActividadComunitariaDatos(datos, aula, resumenPrevio);
 
@@ -310,7 +314,7 @@ export const actividadService = {
     }
 
     if (aula.expedienteEntregado) {
-      throw errorHttp('El expediente ya fue entregado a revision; no se pueden modificar actividades', 400);
+      throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir/modificar actividades', 403);
     }
 
     const fechaBase = datos.fecha || (actividad.fecha instanceof Date ? actividad.fecha.toISOString().split('T')[0] : actividad.fecha);

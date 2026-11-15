@@ -3,6 +3,8 @@ import { docenteOrchestrator } from '../src/application/orchestrators/docenteOrc
 import { expedienteService } from '../src/application/services/expedienteService.js';
 import { actividadService } from '../src/application/services/actividadService.js';
 import { convalidacionService } from '../src/application/services/convalidacionService.js';
+import { AulaVirtual } from '../src/infrastructure/database/models/AulaVirtual.js';
+import { FormularioPendiente } from '../src/infrastructure/database/models/FormularioPendiente.js';
 
 describe('Pruebas del modulo Docente Tutor (docenteOrchestrator)', () => {
   afterEach(() => {
@@ -182,6 +184,109 @@ describe('Pruebas del modulo Docente Tutor (docenteOrchestrator)', () => {
       expect(resultado.success).toBe(true);
       expect(resultado.estado).toBe('pendiente_comision');
       expect(expedienteService.evaluarSeguimientoDocente).toHaveBeenCalledTimes(1);
+    });
+
+    it('debe permitir al docente registrar N actividades de seguimiento continuas sin limitarse a 3 momentos fijos', async () => {
+      const mockAula = {
+        _id: 'aula201',
+        docenteTutor: 'docente123',
+        horasRequeridas: 240,
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(AulaVirtual, 'findOne').mockResolvedValue(mockAula);
+
+      const mockFormulario = {
+        _id: 'form201',
+        aulaVirtual: 'aula201',
+        estado: 'en_revision',
+        totalHoras: 240,
+        seguimientoTutor: {},
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue(mockFormulario);
+
+      const actividadesContinuas = [
+        { actividad: 'Reunion 1: Planificacion y cronograma inicial', fecha: new Date('2026-05-10'), resultados: 'Objetivos coordinados' },
+        { actividad: 'Reunion 2: Revision de bitacoras quincenales', fecha: new Date('2026-05-25'), resultados: 'Avance de 40 horas verificado' },
+        { actividad: 'Reunion 3: Contacto telefonico con el supervisor empresarial', fecha: new Date('2026-06-15'), resultados: 'Desempeno satisfactorio' },
+        { actividad: 'Reunion 4: Revision intermedia de informe de practicas', fecha: new Date('2026-07-01'), resultados: 'Correccion tecnica realizada' },
+        { actividad: 'Reunion 5: Evaluacion final y cierre de seguimiento', fecha: new Date('2026-07-20'), resultados: '240 horas cumplidas' }
+      ];
+
+      const resultado = await docenteOrchestrator.evaluarSeguimientoDocente('aula201', 'docente123', {
+        actividadesSeguimiento: actividadesContinuas,
+        conformidadPlan: true,
+        observacionesPlan: 'Seguimiento continuo y flexible ejecutado exitosamente',
+        remitirAComision: true
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.formulario.seguimientoTutor.actividadesSeguimiento).toHaveLength(5);
+      expect(resultado.formulario.seguimientoTutor.actividadesSeguimiento[0].actividad).toContain('cronograma inicial');
+      expect(resultado.formulario.seguimientoTutor.actividadesSeguimiento[4].actividad).toContain('cierre de seguimiento');
+      expect(resultado.formulario.estado).toBe('pendiente_comision');
+      expect(mockFormulario.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('debe desbloquear el aula (aula.expedienteEntregado = false) y marcar formulario como observado cuando el tutor devuelve con observaciones', async () => {
+      const mockAula = {
+        _id: 'aula201',
+        docenteTutor: 'docente123',
+        expedienteEntregado: true,
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(AulaVirtual, 'findOne').mockResolvedValue(mockAula);
+
+      const mockFormulario = {
+        _id: 'form201',
+        aulaVirtual: 'aula201',
+        estado: 'en_revision',
+        seguimientoTutor: {},
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue(mockFormulario);
+
+      const resultado = await docenteOrchestrator.evaluarSeguimientoDocente('aula201', 'docente123', {
+        estado: 'observado',
+        observaciones: 'Subsanar firmas en bitacora FCP-002 y adjuntar certificado convalidado'
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.message).toContain('devuelto al estudiante para correcciones');
+      expect(mockAula.expedienteEntregado).toBe(false);
+      expect(mockAula.save).toHaveBeenCalledTimes(1);
+      expect(mockFormulario.estado).toBe('observado');
+      expect(mockFormulario.seguimientoTutor.observacionesMejora).toBe('Subsanar firmas en bitacora FCP-002 y adjuntar certificado convalidado');
+      expect(mockFormulario.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('debe desbloquear el aula cuando el tutor envia la bandera devolverAEstudiante en true', async () => {
+      const mockAula = {
+        _id: 'aula201',
+        docenteTutor: 'docente123',
+        expedienteEntregado: true,
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(AulaVirtual, 'findOne').mockResolvedValue(mockAula);
+
+      const mockFormulario = {
+        _id: 'form201',
+        aulaVirtual: 'aula201',
+        estado: 'en_revision',
+        seguimientoTutor: {},
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue(mockFormulario);
+
+      const resultado = await docenteOrchestrator.evaluarSeguimientoDocente('aula201', 'docente123', {
+        devolverAEstudiante: true,
+        observaciones: 'Completar objetivos especificos en el informe'
+      });
+
+      expect(resultado.success).toBe(true);
+      expect(mockAula.expedienteEntregado).toBe(false);
+      expect(mockAula.save).toHaveBeenCalledTimes(1);
+      expect(mockFormulario.estado).toBe('observado');
     });
   });
 });
