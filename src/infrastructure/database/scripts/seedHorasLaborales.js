@@ -120,9 +120,7 @@ async function ejecutarSeed(aula) {
         horas: horasJornada,
         descripcion: DESCRIPCIONES_BASE[idxDesc % DESCRIPCIONES_BASE.length],
         estadoAprobacion: ESTADOS_ACTIVIDAD.APROBADO,
-        observacionesTutor: `${MARCA_SEED} Jornada aprobada automáticamente para pruebas`,
-        fechaRevision: new Date(),
-        revisadoPor: aula.docenteTutor
+        observacionesDocente: `${MARCA_SEED} Jornada aprobada automáticamente para pruebas`
       });
 
       fechasOcupadas.add(fechaIso);
@@ -151,7 +149,7 @@ async function ejecutarSeed(aula) {
 async function ejecutarRollback(aula) {
   const resultado = await ActividadLaboral.deleteMany({
     aulaVirtual: aula._id,
-    observacionesTutor: /^\[SEED\]/
+    observacionesDocente: /^\[SEED\]/
   });
 
   console.log(
