@@ -92,15 +92,11 @@ export const excelService = {
     if (entidad.celular) worksheet.getCell('J14').value = entidad.celular;
     if (entidad.tipoEntidad) worksheet.getCell('E15').value = entidad.tipoEntidad;
     if (entidad.responsable) worksheet.getCell('E16').value = entidad.responsable;
-    if (entidad.tutorEmpresarial) {
-      worksheet.getCell('E17').value = entidad.tutorEmpresarial;
-      worksheet.getCell('E18').value = entidad.tutorEmpresarial;
-    }
 
     // 2. Datos del practicante
     worksheet.getCell('E21').value = nombreCompletoEstudiante;
     worksheet.getCell('E22').value = estudiante?.cedula || '';
-    worksheet.getCell('E23').value = 120;
+    worksheet.getCell('E23').value = formularioPendiente?.creditosAprobados || '';
 
     // 3. Responsabilidad y consentimiento
     worksheet.getCell('B26').value = nombreCompletoEstudiante;

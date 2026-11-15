@@ -110,25 +110,20 @@ export const asistenteIaService = {
       throw errorHttp('Primero debes consultar y completar los datos generales del formulario antes de generar con IA', 400);
     }
 
-    // 1. Validar que todos los datos generales (entidadReceptora y horarioSemanal) esten completos
+    // 1. Validar que todos los datos generales obligatorios del F_AA_119 esten completos
     const er = formulario.entidadReceptora || {};
     const hs = formulario.horarioSemanal || {};
     const camposEntidad = [
+      ['razonSocial', 'Razón social'],
       ['ruc', 'RUC'],
       ['direccion', 'Dirección'],
-      ['correo', 'Correo institucional'],
+      ['correo', 'Correo electrónico'],
       ['ciudad', 'Ciudad'],
       ['telefono', 'Teléfono'],
       ['celular', 'Celular'],
       ['tipoEntidad', 'Tipo de entidad'],
-      ['tutorEmpresarial', 'Tutor empresarial'],
-      ['tutorGeneral', 'Tutor general'],
-      ['tutorEspecifico', 'Tutor específico'],
-      ['campoAmplio', 'Campo amplio'],
-      ['campoEspecifico', 'Campo específico'],
-      ['razonSocial', 'Razón social'],
-      ['areaAsignada', 'Área asignada'],
-      ['responsable', 'Responsable']
+      ['responsable', 'Responsable de la entidad receptora'],
+      ['areaAsignada', 'Área asignada']
     ];
 
     const faltantes = [];
@@ -136,6 +131,9 @@ export const asistenteIaService = {
       if (!er[key] || String(er[key]).trim() === '') {
         faltantes.push(label);
       }
+    }
+    if (!formulario.creditosAprobados || Number(formulario.creditosAprobados) <= 0) {
+      faltantes.push('Créditos aprobados');
     }
     if (!hs.horaInicio || String(hs.horaInicio).trim() === '') faltantes.push('Hora de inicio');
     if (!hs.horaFin || String(hs.horaFin).trim() === '') faltantes.push('Hora de fin');

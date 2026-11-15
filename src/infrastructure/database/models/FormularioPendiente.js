@@ -36,12 +36,12 @@ const formularioPendienteSchema = new mongoose.Schema(
       celular: { type: String, default: '' },
       tipoEntidad: { type: String, default: 'Privada' },
       responsable: { type: String, default: '' },
-      tutorEmpresarial: { type: String, default: '' },
-      tutorGeneral: { type: String, default: '' },
-      tutorEspecifico: { type: String, default: '' },
       areaAsignada: { type: String, default: '' },
-      campoAmplio: { type: String, default: 'TECNOLOGIAS DE LA INFORMACION Y LA COMUNICACION (TIC)' },
-      campoEspecifico: { type: String, default: 'Tecnologías de la información y la comunicación (TIC)' }
+      cedulaResponsable: { type: String, default: '' }
+    },
+    creditosAprobados: {
+      type: Number,
+      default: 0
     },
     horarioSemanal: {
       horaInicio: { type: String, default: '08:00' },

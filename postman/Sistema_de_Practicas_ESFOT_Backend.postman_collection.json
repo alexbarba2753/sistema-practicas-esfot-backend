@@ -4127,7 +4127,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"Empresa Pública de Telecomunicaciones\",\n    \"ruc\": \"1790000000001\",\n    \"ciudad\": \"Quito\",\n    \"responsable\": \"Ing. Carlos Morales\",\n    \"areaAsignada\": \"Desarrollo de Software\"\n  },\n  \"horarioSemanal\": {\n    \"horaInicio\": \"08:00\",\n    \"horaFin\": \"16:30\",\n    \"horasSemanales\": 40\n  }\n}",
+                  "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"TECH SOLUTIONS S.A.\",\n    \"ruc\": \"1790000000001\",\n    \"direccion\": \"Av. Amazonas N34-12 y Naciones Unidas\",\n    \"correo\": \"contacto@techsolutions.ec\",\n    \"ciudad\": \"Quito\",\n    \"telefono\": \"022456789\",\n    \"celular\": \"0998765432\",\n    \"tipoEntidad\": \"Privada\",\n    \"responsable\": \"Ing. Carlos Mendoza\",\n    \"areaAsignada\": \"Sistemas e Innovación\"\n  },\n  \"creditosAprobados\": 90,\n  \"horarioSemanal\": {\n    \"horaInicio\": \"08:00\",\n    \"horaFin\": \"12:00\",\n    \"horasSemanales\": 20,\n    \"observacionesFechas\": \"\"\n  }\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4178,7 +4178,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"Empresa Pública de Telecomunicaciones\",\n    \"ruc\": \"1790000000001\",\n    \"ciudad\": \"Quito\",\n    \"responsable\": \"Ing. Carlos Morales\",\n    \"areaAsignada\": \"Desarrollo de Software\"\n  },\n  \"horarioSemanal\": {\n    \"horaInicio\": \"08:00\",\n    \"horaFin\": \"16:30\",\n    \"horasSemanales\": 40\n  }\n}",
+                      "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"TECH SOLUTIONS S.A.\",\n    \"ruc\": \"1790000000001\",\n    \"direccion\": \"Av. Amazonas N34-12 y Naciones Unidas\",\n    \"correo\": \"contacto@techsolutions.ec\",\n    \"ciudad\": \"Quito\",\n    \"telefono\": \"022456789\",\n    \"celular\": \"0998765432\",\n    \"tipoEntidad\": \"Privada\",\n    \"responsable\": \"Ing. Carlos Mendoza\",\n    \"areaAsignada\": \"Sistemas e Innovación\"\n  },\n  \"creditosAprobados\": 90,\n  \"horarioSemanal\": {\n    \"horaInicio\": \"08:00\",\n    \"horaFin\": \"12:00\",\n    \"horasSemanales\": 20,\n    \"observacionesFechas\": \"\"\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -4244,7 +4244,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"Empresa Pública de Telecomunicaciones\",\n    \"ruc\": \"1790000000001\",\n    \"ciudad\": \"Quito\",\n    \"responsable\": \"Ing. Carlos Morales\",\n    \"areaAsignada\": \"Desarrollo de Software\"\n  },\n  \"horarioSemanal\": {\n    \"horaInicio\": \"08:00\",\n    \"horaFin\": \"16:30\",\n    \"horasSemanales\": 40\n  }\n}",
+                      "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"TECH SOLUTIONS S.A.\",\n    \"ruc\": \"1790000000001\",\n    \"direccion\": \"Av. Amazonas N34-12 y Naciones Unidas\",\n    \"correo\": \"contacto@techsolutions.ec\",\n    \"ciudad\": \"Quito\",\n    \"telefono\": \"022456789\",\n    \"celular\": \"0998765432\",\n    \"tipoEntidad\": \"Privada\",\n    \"responsable\": \"Ing. Carlos Mendoza\",\n    \"areaAsignada\": \"Sistemas e Innovación\"\n  },\n  \"creditosAprobados\": 90,\n  \"horarioSemanal\": {\n    \"horaInicio\": \"08:00\",\n    \"horaFin\": \"12:00\",\n    \"horasSemanales\": 20,\n    \"observacionesFechas\": \"\"\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"

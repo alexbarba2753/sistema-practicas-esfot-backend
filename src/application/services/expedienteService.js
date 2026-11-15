@@ -7,6 +7,77 @@ import { convalidacionService } from './convalidacionService.js';
 import { excelService } from './excelService.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
+const CAMPOS_ENTIDAD_F_AA_119 = [
+  'razonSocial',
+  'ruc',
+  'direccion',
+  'correo',
+  'ciudad',
+  'telefono',
+  'celular',
+  'tipoEntidad',
+  'responsable',
+  'areaAsignada',
+  'cedulaResponsable'
+];
+
+function formatearDatosGeneralesFormulario(formulario, aula) {
+  const er = typeof formulario.entidadReceptora?.toObject === 'function'
+    ? formulario.entidadReceptora.toObject()
+    : (formulario.entidadReceptora || {});
+  const hs = typeof formulario.horarioSemanal?.toObject === 'function'
+    ? formulario.horarioSemanal.toObject()
+    : (formulario.horarioSemanal || {});
+  const ci = typeof formulario.contenidoIa?.toObject === 'function'
+    ? formulario.contenidoIa.toObject()
+    : (formulario.contenidoIa || {});
+  const est = aula?.estudiante && typeof aula.estudiante === 'object' ? aula.estudiante : {};
+  const emp = aula?.datosEmpresa || {};
+
+  return {
+    _id: formulario._id,
+    aulaVirtual: formulario.aulaVirtual,
+    modalidad: formulario.modalidad,
+    estado: formulario.estado,
+    entidadReceptora: {
+      razonSocial: er.razonSocial || emp.razonSocial || '',
+      ruc: er.ruc || '',
+      direccion: er.direccion || '',
+      correo: er.correo || '',
+      ciudad: er.ciudad || 'Quito',
+      telefono: er.telefono || '',
+      celular: er.celular || '',
+      tipoEntidad: er.tipoEntidad || 'Privada',
+      responsable: er.responsable || emp.responsable || '',
+      areaAsignada: er.areaAsignada || emp.areaAsignada || '',
+      cedulaResponsable: er.cedulaResponsable || ''
+    },
+    datosPracticante: {
+      nombres: est.nombres || '',
+      apellidos: est.apellidos || '',
+      nombreCompleto: `${est.nombres || ''} ${est.apellidos || ''}`.trim(),
+      cedula: est.cedula || '',
+      creditosAprobados: formulario.creditosAprobados || 0
+    },
+    horarioSemanal: {
+      fechaInicio: aula?.fechaInicio || null,
+      fechaFin: aula?.fechaFin || null,
+      horaInicio: hs.horaInicio || '08:00',
+      horaFin: hs.horaFin || '16:30',
+      horasSemanales: hs.horasSemanales ?? (emp.horasDiarias ? emp.horasDiarias * 5 : 40),
+      observacionesFechas: hs.observacionesFechas || '',
+      totalHoras: formulario.totalHoras || aula?.horasRequeridas || 0
+    },
+    contenidoIa: {
+      asignaturasUtilidad: ci.asignaturasUtilidad || '',
+      principalesActividades: ci.principalesActividades || '',
+      habilidadesAdquiridas: ci.habilidadesAdquiridas || '',
+      observacionesTemas: ci.observacionesTemas || ''
+    },
+    ultimaEdicionEstudiante: formulario.ultimaEdicionEstudiante || null
+  };
+}
+
 export const expedienteService = {
   // Consulta las aulas virtuales en las que participa el estudiante con resumen de progreso
   async obtenerAulasEstudiante(estudianteId) {
@@ -44,27 +115,45 @@ export const expedienteService = {
   },
 
   async obtenerFormularioPendiente(aulaId) {
+    const queryAula = AulaVirtual.findById(aulaId);
+    const aula = typeof queryAula?.populate === 'function'
+      ? await queryAula.populate('estudiante', 'nombres apellidos cedula correo')
+      : await queryAula;
+    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
+
     let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
     if (!formulario) {
-      const aula = await AulaVirtual.findById(aulaId);
-      if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
-
+      const emp = aula.datosEmpresa || {};
       formulario = new FormularioPendiente({
         aulaVirtual: aulaId,
-        estudiante: aula.estudiante,
+        estudiante: aula.estudiante?._id || aula.estudiante,
         modalidad: aula.modalidad,
-        totalHoras: 0
+        totalHoras: 0,
+        entidadReceptora: {
+          razonSocial: emp.razonSocial || '',
+          areaAsignada: emp.areaAsignada || '',
+          responsable: emp.responsable || ''
+        },
+        horarioSemanal: {
+          horaInicio: '08:00',
+          horaFin: '16:30',
+          horasSemanales: emp.horasDiarias ? emp.horasDiarias * 5 : 40
+        }
       });
       await formulario.save();
     }
-    return formulario;
+    return formatearDatosGeneralesFormulario(formulario, aula);
   },
 
   async actualizarFormularioPendiente(aulaId, estudianteId, datos) {
-    const aula = await AulaVirtual.findById(aulaId);
+    const queryAula = AulaVirtual.findById(aulaId);
+    const aula = typeof queryAula?.populate === 'function'
+      ? await queryAula.populate('estudiante', 'nombres apellidos cedula correo')
+      : await queryAula;
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
-    if (aula.estudiante?.toString() !== estudianteId.toString()) {
+    const aulaEstudianteId = aula.estudiante?._id ? aula.estudiante._id.toString() : aula.estudiante?.toString();
+    if (aulaEstudianteId !== estudianteId.toString()) {
       throw errorHttp('No tienes permiso para modificar este formulario', 403);
     }
 
@@ -82,21 +171,47 @@ export const expedienteService = {
     }
 
     if (datos.entidadReceptora) {
-      formulario.entidadReceptora = { ...formulario.entidadReceptora.toObject(), ...datos.entidadReceptora };
+      const actual = typeof formulario.entidadReceptora?.toObject === 'function'
+        ? formulario.entidadReceptora.toObject()
+        : (formulario.entidadReceptora || {});
+      const filtrado = {};
+      for (const campo of CAMPOS_ENTIDAD_F_AA_119) {
+        if (datos.entidadReceptora[campo] !== undefined) {
+          filtrado[campo] = datos.entidadReceptora[campo];
+        }
+      }
+      formulario.entidadReceptora = { ...actual, ...filtrado };
+    }
+
+    const creditos = datos.creditosAprobados ?? datos.datosPracticante?.creditosAprobados;
+    if (creditos !== undefined) {
+      formulario.creditosAprobados = Number(creditos);
     }
 
     if (datos.horarioSemanal) {
-      formulario.horarioSemanal = { ...formulario.horarioSemanal.toObject(), ...datos.horarioSemanal };
+      const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
+        ? formulario.horarioSemanal.toObject()
+        : (formulario.horarioSemanal || {});
+      const horarioFiltrado = {};
+      for (const campo of ['horaInicio', 'horaFin', 'horasSemanales', 'observacionesFechas']) {
+        if (datos.horarioSemanal[campo] !== undefined) {
+          horarioFiltrado[campo] = datos.horarioSemanal[campo];
+        }
+      }
+      formulario.horarioSemanal = { ...actualHorario, ...horarioFiltrado };
     }
 
     if (datos.contenidoIa) {
-      formulario.contenidoIa = { ...formulario.contenidoIa.toObject(), ...datos.contenidoIa };
+      const actualIa = typeof formulario.contenidoIa?.toObject === 'function'
+        ? formulario.contenidoIa.toObject()
+        : (formulario.contenidoIa || {});
+      formulario.contenidoIa = { ...actualIa, ...datos.contenidoIa };
     }
 
     formulario.ultimaEdicionEstudiante = new Date();
     await formulario.save();
 
-    return formulario;
+    return formatearDatosGeneralesFormulario(formulario, aula);
   },
 
   // Entrega formal del expediente completo de practicas al docente tutor para su calificacion

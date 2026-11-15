@@ -425,6 +425,7 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
 
   describe('Validaciones previas para generacion de borrador con IA', () => {
     const entidadCompleta = {
+      razonSocial: 'TECH SOLUTIONS S.A.',
       ruc: '1790000000001',
       direccion: 'Av. Amazonas N34-12',
       correo: 'contacto@techsolutions.ec',
@@ -433,13 +434,7 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       celular: '0998765432',
       tipoEntidad: 'Privada',
       responsable: 'Ing. Carlos Mendoza',
-      tutorEmpresarial: 'Ing. Carlos Mendoza',
-      tutorGeneral: 'Ing. Fernando Gomez',
-      tutorEspecifico: 'Ing. Maria Torres',
-      areaAsignada: 'Sistemas e Innovacion',
-      campoAmplio: 'TIC',
-      campoEspecifico: 'Desarrollo de Software',
-      razonSocial: 'TECH SOLUTIONS S.A.'
+      areaAsignada: 'Sistemas e Innovacion'
     };
 
     const horarioCompleto = {
@@ -448,7 +443,7 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       horasSemanales: 20
     };
 
-    it('debe rechazar con 400 si faltan datos generales en entidadReceptora o horarioSemanal', async () => {
+    it('debe rechazar con 400 si faltan datos generales en entidadReceptora, creditosAprobados o horarioSemanal', async () => {
       jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
         _id: 'aula1',
         estudiante: 'est1',
@@ -457,6 +452,7 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       });
       jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
         entidadReceptora: { ...entidadCompleta, ruc: '', direccion: '' },
+        creditosAprobados: 90,
         horarioSemanal: horarioCompleto
       });
 
@@ -474,6 +470,7 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       });
       jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
         entidadReceptora: entidadCompleta,
+        creditosAprobados: 90,
         horarioSemanal: horarioCompleto
       });
       jest.spyOn(actividadService, 'calcularHorasAula').mockResolvedValue({
@@ -495,6 +492,7 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       });
       const mockForm = {
         entidadReceptora: entidadCompleta,
+        creditosAprobados: 90,
         horarioSemanal: horarioCompleto,
         contenidoIa: {},
         save: jest.fn().mockResolvedValue(true)
