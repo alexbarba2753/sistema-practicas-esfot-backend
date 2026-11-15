@@ -15,13 +15,13 @@ router.get('/aulas', estudianteController.obtenerAulas);
 // 2. Chatbot RAG de consultas normativas
 router.post('/ia/consulta', estudianteController.consultarAsistenteIa);
 
-// 3. Bitacora laboral FCP-002
+// 3. Bitacora de actividades laborales
 router.post('/aulas/:aulaId/laborales', estudianteController.crearActividadLaboral);
 router.get('/aulas/:aulaId/laborales', estudianteController.listarActividadesLaborales);
 router.put('/aulas/:aulaId/laborales/:actividadId', estudianteController.actualizarActividadLaboral);
 router.put('/laborales/:actividadId', estudianteController.actualizarActividadLaboral);
 
-// 4. Bitacora comunitaria FCP-002
+// 4. Bitacora de actividades comunitarias
 router.post('/aulas/:aulaId/comunitarias', estudianteController.crearActividadComunitaria);
 router.get('/aulas/:aulaId/comunitarias', estudianteController.listarActividadesComunitarias);
 router.put('/aulas/:aulaId/comunitarias/:actividadId', estudianteController.actualizarActividadComunitaria);

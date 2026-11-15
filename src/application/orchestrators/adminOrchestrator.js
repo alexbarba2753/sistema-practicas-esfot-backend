@@ -30,9 +30,9 @@ export const adminOrchestrator = {
     return await usuarioService.cambiarEstadoUsuario(id, estado);
   },
 
-  // crea una nueva aula virtual para asignar al estudiante con su tutor, procesando opcionalmente la carta o excel inicial
-  async crearAula(datos, archivo = null) {
-    return await aulaService.crearAula(datos, archivo);
+  // crea una nueva aula virtual para asignar al estudiante con su tutor, procesando obligatoriamente los documentos PDF iniciales
+  async crearAula(datos, archivos = null) {
+    return await aulaService.crearAula(datos, archivos);
   },
 
   // lista las aulas virtuales registradas segun el periodo o la modalidad laboral o comunitaria

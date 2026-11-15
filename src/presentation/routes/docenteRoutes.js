@@ -13,11 +13,11 @@ router.use(authMiddleware, requireRole(ROLES.DOCENTE));
 router.get('/aulas', docenteController.listarAulas);
 router.get('/aulas/:aulaId', docenteController.obtenerDetalleAula);
 
-// 2. Evaluacion de bitacora laboral FCP-002
+// 2. Evaluacion de bitacora laboral
 router.get('/aulas/:aulaId/laborales', docenteController.listarActividadesLaborales);
 router.put('/actividades/laborales/:actividadId/evaluar', docenteController.evaluarActividadLaboral);
 
-// 3. Evaluacion de bitacora comunitaria FCP-002
+// 3. Evaluacion de bitacora comunitaria
 router.get('/aulas/:aulaId/comunitarias', docenteController.listarActividadesComunitarias);
 router.put('/actividades/comunitarias/:actividadId/evaluar', docenteController.evaluarActividadComunitaria);
 

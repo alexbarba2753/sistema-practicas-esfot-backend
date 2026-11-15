@@ -10,6 +10,12 @@ export const uploadDocumento = multer({
   }
 });
 
+// Middleware para recepcion obligatoria de Carta de Aceptacion y Solicitud de Practicas en PDF
+export const uploadAulasArchivos = uploadDocumento.fields([
+  { name: 'cartaAceptacion', maxCount: 1 },
+  { name: 'SolicitudPracticas', maxCount: 1 }
+]);
+
 // Middleware para procesar archivos normativos (markdown) por multipart/form-data o json
 export const procesarArchivoNormativo = async (req, res, next) => {
   try {

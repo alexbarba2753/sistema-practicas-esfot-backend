@@ -6,6 +6,7 @@ import { ActividadLaboral } from '../../infrastructure/database/models/Actividad
 import { ActividadComunitaria } from '../../infrastructure/database/models/ActividadComunitaria.js';
 import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
 import { MODALIDADES } from '../../domain/constants/practicasConstants.js';
+import { actividadService } from './actividadService.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
 let groqClient = null;
@@ -100,6 +101,62 @@ export const asistenteIaService = {
     const aula = await AulaVirtual.findById(aulaId);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
+    if (aula.estudiante && estudianteId && aula.estudiante.toString() !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para generar el informe de esta aula virtual', 403);
+    }
+
+    let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (!formulario) {
+      throw errorHttp('Primero debes consultar y completar los datos generales del formulario antes de generar con IA', 400);
+    }
+
+    // 1. Validar que todos los datos generales (entidadReceptora y horarioSemanal) esten completos
+    const er = formulario.entidadReceptora || {};
+    const hs = formulario.horarioSemanal || {};
+    const camposEntidad = [
+      ['ruc', 'RUC'],
+      ['direccion', 'Dirección'],
+      ['correo', 'Correo institucional'],
+      ['ciudad', 'Ciudad'],
+      ['telefono', 'Teléfono'],
+      ['celular', 'Celular'],
+      ['tipoEntidad', 'Tipo de entidad'],
+      ['tutorEmpresarial', 'Tutor empresarial'],
+      ['tutorGeneral', 'Tutor general'],
+      ['tutorEspecifico', 'Tutor específico'],
+      ['campoAmplio', 'Campo amplio'],
+      ['campoEspecifico', 'Campo específico'],
+      ['razonSocial', 'Razón social'],
+      ['areaAsignada', 'Área asignada'],
+      ['responsable', 'Responsable']
+    ];
+
+    const faltantes = [];
+    for (const [key, label] of camposEntidad) {
+      if (!er[key] || String(er[key]).trim() === '') {
+        faltantes.push(label);
+      }
+    }
+    if (!hs.horaInicio || String(hs.horaInicio).trim() === '') faltantes.push('Hora de inicio');
+    if (!hs.horaFin || String(hs.horaFin).trim() === '') faltantes.push('Hora de fin');
+    if (!hs.horasSemanales || Number(hs.horasSemanales) <= 0) faltantes.push('Horas semanales');
+
+    if (faltantes.length > 0) {
+      throw errorHttp(
+        `Debes completar todos los datos generales del formulario antes de generar el borrador con IA. Faltan: ${faltantes.join(', ')}`,
+        400
+      );
+    }
+
+    // 2. Validar que el estudiante haya culminado el 100% de las horas pactadas del aula
+    const resumenHoras = await actividadService.calcularHorasAula(aulaId);
+    if (!resumenHoras.cumplioRequisito) {
+      throw errorHttp(
+        `Debes completar el 100% de las horas del aula antes de generar el borrador con IA (${resumenHoras.horasAprobadas}/${aula.horasRequeridas}h aprobadas)`,
+        400
+      );
+    }
+
     let actividades = [];
     if (aula.modalidad === MODALIDADES.LABORAL) {
       actividades = await ActividadLaboral.find({ aulaVirtual: aulaId }).sort({ fecha: 1 });
@@ -112,17 +169,7 @@ export const asistenteIaService = {
     }
 
     const descripciones = actividades.map((a) => a.descripcion).join('. ');
-    const totalHoras = actividades.reduce((acc, curr) => acc + curr.horas, 0);
-
-    let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
-    if (!formulario) {
-      formulario = new FormularioPendiente({
-        aulaVirtual: aulaId,
-        estudiante: estudianteId,
-        modalidad: aula.modalidad,
-        totalHoras
-      });
-    }
+    const totalHoras = resumenHoras.horasAprobadas;
 
     formulario.totalHoras = totalHoras;
     formulario.contenidoIa.principalesActividades = descripciones.slice(0, 1000);

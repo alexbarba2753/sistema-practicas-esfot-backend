@@ -7,12 +7,12 @@ import { errorHttp } from '../../domain/utils/errorHttp.js';
 
 export const aulaService = {
   // Crea y parametriza un aula virtual garantizando la relacion 1 a 1 entre docente y estudiante
-  // Permite procesar documentos iniciales (Carta de Aceptacion en Word/PDF o Formulario FCP-001A en Excel)
-  async crearAula(datos, archivo = null) {
+  // Para practicas laborales exige obligatoriamente los PDFs de cartaAceptacion y SolicitudPracticas
+  async crearAula(datos, archivos = null) {
     const { nombre, periodo, modalidad, docenteTutor, estudiante, fechaInicio, fechaFin } = datos;
 
-    if (!nombre || !periodo || !modalidad || !docenteTutor || !estudiante || !fechaFin) {
-      throw errorHttp('Nombre, periodo, modalidad, docente tutor, estudiante y fecha fin son obligatorios', 400);
+    if (!nombre || !periodo || !modalidad || !docenteTutor || !estudiante) {
+      throw errorHttp('Nombre, periodo, modalidad, docente tutor y estudiante son obligatorios', 400);
     }
 
     if (!Object.values(MODALIDADES).includes(modalidad)) {
@@ -41,11 +41,8 @@ export const aulaService = {
       throw errorHttp(`El estudiante ya cuenta con un aula virtual activa para la modalidad '${modalidad}'`, 409);
     }
 
-    const fInicio = fechaInicio ? new Date(fechaInicio) : new Date();
-    const fFin = new Date(fechaFin);
-    if (isNaN(fFin.getTime()) || fFin <= fInicio) {
-      throw errorHttp('La fecha fin debe ser valida y posterior a la fecha de inicio', 400);
-    }
+    let fInicio = fechaInicio ? new Date(fechaInicio) : null;
+    let fFin = fechaFin ? new Date(fechaFin) : null;
 
     let horasRequeridas = datos.horasRequeridas
       ? Number(datos.horasRequeridas)
@@ -64,37 +61,67 @@ export const aulaService = {
       razonSocial: datos.razonSocial || '',
       responsable: datos.responsable || '',
       cargo: datos.cargo || '',
+      cargoEstudiante: datos.cargoEstudiante || '',
       horasDiarias: datos.horasDiarias ? Number(datos.horasDiarias) : 8,
       totalHorasPactadas: null,
       areaAsignada: datos.areaAsignada || ''
     };
 
-    // Procesamiento automatico si se sube archivo de respaldo
-    if (archivo && archivo.buffer) {
-      docInicial.nombreArchivo = archivo.originalname || 'documento_inicial';
-      const texto = await documentParserService.extraerTexto(archivo.buffer, archivo.originalname, archivo.mimetype);
+    const cartaFile = archivos?.cartaAceptacion?.[0] || null;
+    const solicitudFile = archivos?.SolicitudPracticas?.[0] || null;
+    const archivoUnico = archivos?.documento?.[0] || (archivos?.buffer ? archivos : null);
+
+    if (modalidad === MODALIDADES.LABORAL) {
+      // Obligatorio: ambos PDFs (cartaAceptacion y SolicitudPracticas)
+      const validacion = await documentParserService.validarDocumentosCreacionAula(
+        cartaFile,
+        solicitudFile,
+        alumno
+      );
+
+      const { carta, textoCarta, textoSolicitud } = validacion;
+      horasRequeridas = carta.totalHoras;
+      fInicio = carta.fechaInicio;
+      fFin = carta.fechaFin;
+
+      docInicial = {
+        tipo: 'carta_aceptacion',
+        nombreArchivo: `${cartaFile.originalname} | ${solicitudFile.originalname}`,
+        textoExtraido: `${textoCarta}\n\n--- SOLICITUD ---\n${textoSolicitud}`.slice(0, 4000),
+        horasExtraidas: carta.totalHoras
+      };
+
+      datosEmpresa = {
+        razonSocial: carta.razonSocial,
+        responsable: carta.responsable || datos.responsable || '',
+        cargo: carta.cargoResponsable || datos.cargo || '',
+        cargoEstudiante: carta.cargoEstudiante || datos.cargoEstudiante || '',
+        horasDiarias: carta.horasDiarias || 8,
+        totalHorasPactadas: carta.totalHoras,
+        areaAsignada: carta.areaAsignada || ''
+      };
+    } else if (archivoUnico && archivoUnico.buffer) {
+      docInicial.nombreArchivo = archivoUnico.originalname || 'documento_inicial';
+      const texto = await documentParserService.extraerTexto(
+        archivoUnico.buffer,
+        archivoUnico.originalname,
+        archivoUnico.mimetype
+      );
       docInicial.textoExtraido = texto.slice(0, 4000);
 
-      const nombreMin = (archivo.originalname || '').toLowerCase();
+      const nombreMin = (archivoUnico.originalname || '').toLowerCase();
       if (nombreMin.endsWith('.xlsx') || nombreMin.endsWith('.xlsm')) {
         docInicial.tipo = 'formulario_fcp_001a';
-        const datosExcel = await documentParserService.validarYProcesarExcelFcp001a(archivo.buffer);
+        const datosExcel = await documentParserService.validarYProcesarExcelFcp001a(archivoUnico.buffer);
         horasRequeridas = datosExcel.horasSolicitadas;
         docInicial.horasExtraidas = horasRequeridas;
         datosEmpresa.razonSocial = datosExcel.razonSocial || datosEmpresa.razonSocial;
-      } else {
-        docInicial.tipo = 'carta_aceptacion';
-        const analizado = documentParserService.analizarCartaAceptacion(texto);
-        if (analizado.totalHoras && analizado.totalHoras > 0) {
-          horasRequeridas = analizado.totalHoras;
-          docInicial.horasExtraidas = analizado.totalHoras;
-          datosEmpresa.totalHorasPactadas = analizado.totalHoras;
-        }
-        if (analizado.horasDiarias) datosEmpresa.horasDiarias = analizado.horasDiarias;
-        if (analizado.razonSocial) datosEmpresa.razonSocial = analizado.razonSocial;
-        if (analizado.areaAsignada) datosEmpresa.areaAsignada = analizado.areaAsignada;
-        if (analizado.cargoEstudiante) datosEmpresa.cargo = analizado.cargoEstudiante;
       }
+    }
+
+    if (!fInicio) fInicio = new Date();
+    if (!fFin || isNaN(fFin.getTime()) || fFin <= fInicio) {
+      throw errorHttp('La fecha fin debe ser valida y posterior a la fecha de inicio', 400);
     }
 
     const nuevaAula = new AulaVirtual({

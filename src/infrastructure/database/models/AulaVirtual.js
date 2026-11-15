@@ -72,6 +72,7 @@ const aulaVirtualSchema = new mongoose.Schema(
       razonSocial: { type: String, default: '' },
       responsable: { type: String, default: '' },
       cargo: { type: String, default: '' },
+      cargoEstudiante: { type: String, default: '' },
       horasDiarias: { type: Number, default: 8 },
       totalHorasPactadas: { type: Number, default: null },
       areaAsignada: { type: String, default: '' }

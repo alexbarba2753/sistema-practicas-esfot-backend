@@ -70,8 +70,8 @@ export const adminController = {
   // Aulas Virtuales
   async crearAula(req, res, next) {
     try {
-      const archivo = req.file || null;
-      const aula = await adminOrchestrator.crearAula(req.body, archivo);
+      const archivos = req.files || (req.file ? { documento: [req.file] } : null);
+      const aula = await adminOrchestrator.crearAula(req.body, archivos);
       res.status(201).json({
         success: true,
         message: 'Aula virtual creada y parametrizada con exito',

@@ -627,7 +627,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"cedula\": \"1720000007\",\n  \"nombres\": \"Carlos Andrés\",\n  \"apellidos\": \"Pérez Morales\",\n  \"correo\": \"carlos.perez@epn.edu.ec\",\n  \"password\": \"PasswordEstudiante123!\",\n  \"telefono\": \"0991234567\",\n  \"rol\": \"estudiante\"\n}",
+                      "raw": "{\n  \"cedula\": \"1723456784\",\n  \"nombres\": \"Juan Carlos\",\n  \"apellidos\": \"Perez Lopez\",\n  \"correo\": \"juan.perez@epn.edu.ec\",\n  \"password\": \"PasswordEstudiante123!\",\n  \"telefono\": \"0987654321\",\n  \"rol\": \"estudiante\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -948,20 +948,53 @@
                       ]
                     },
                     "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
+                    "header": [],
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"nombre\": \"Práctica Preprofesional Laboral - 2026-B\",\n  \"periodo\": \"2026-B\",\n  \"modalidad\": \"laboral\",\n  \"docenteTutor\": \"{{docenteId}}\",\n  \"estudiante\": \"{{estudianteId}}\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "nombre",
+                          "value": "Práctica Preprofesional Laboral - 2026-B",
+                          "description": "Nombre descriptivo del aula virtual",
+                          "type": "text"
+                        },
+                        {
+                          "key": "periodo",
+                          "value": "2026-B",
+                          "description": "Periodo académico vigente",
+                          "type": "text"
+                        },
+                        {
+                          "key": "modalidad",
+                          "value": "laboral",
+                          "description": "Modalidad laboral",
+                          "type": "text"
+                        },
+                        {
+                          "key": "docenteTutor",
+                          "value": "{{docenteId}}",
+                          "description": "ID de MongoDB del docente tutor asignado",
+                          "type": "text"
+                        },
+                        {
+                          "key": "estudiante",
+                          "value": "{{estudianteId}}",
+                          "description": "ID de MongoDB del estudiante asignado (su cédula debe coincidir con los PDFs)",
+                          "type": "text"
+                        },
+                        {
+                          "key": "cartaAceptacion",
+                          "value": "",
+                          "description": "PDF obligatorio: Carta de Aceptación (CPP_ESFOT_001) completamente llena",
+                          "type": "file"
+                        },
+                        {
+                          "key": "SolicitudPracticas",
+                          "value": "",
+                          "description": "PDF obligatorio: Solicitud de Prácticas (FP-001) completamente llena y coincidente",
+                          "type": "file"
                         }
-                      }
+                      ]
                     },
                     "url": {
                       "raw": "{{baseUrl}}/admin/aulas-virtuales",
@@ -973,7 +1006,7 @@
                         "aulas-virtuales"
                       ]
                     },
-                    "description": "Crea y parametriza un aula virtual de Prácticas Laborales (240 horas reglamentarias) vinculando al docente tutor y al estudiante mediante variables."
+                    "description": "Crea y parametriza un aula virtual de Prácticas Laborales exigiendo obligatoriamente los PDFs de cartaAceptacion (CPP_ESFOT_001) y SolicitudPracticas (FP-001)."
                   },
                   "response": [
                     {
@@ -1740,51 +1773,45 @@
                   "mode": "formdata",
                   "formdata": [
                     {
-                      "value": "Prácticas Preprofesionales - Desarrollo de Software",
                       "key": "nombre",
+                      "value": "Práctica Preprofesional Laboral - 2026-B",
                       "description": "Nombre descriptivo del aula virtual",
                       "type": "text"
                     },
                     {
-                      "value": "2026-B",
                       "key": "periodo",
+                      "value": "2026-B",
                       "description": "Periodo académico vigente",
                       "type": "text"
                     },
                     {
-                      "value": "Laboral",
                       "key": "modalidad",
-                      "description": "Modalidad de la práctica: Laboral o Comunitario",
+                      "value": "laboral",
+                      "description": "Modalidad laboral",
                       "type": "text"
                     },
                     {
-                      "value": "{{docenteId}}",
                       "key": "docenteTutor",
+                      "value": "{{docenteId}}",
                       "description": "ID de MongoDB del docente tutor asignado",
                       "type": "text"
                     },
                     {
-                      "value": "{{estudianteId}}",
                       "key": "estudiante",
-                      "description": "ID de MongoDB del estudiante asignado",
+                      "value": "{{estudianteId}}",
+                      "description": "ID de MongoDB del estudiante asignado (su cédula debe coincidir con los PDFs)",
                       "type": "text"
                     },
                     {
-                      "value": "2026-10-01T08:00:00.000Z",
-                      "key": "fechaInicio",
-                      "description": "Fecha de inicio de actividades",
-                      "type": "text"
-                    },
-                    {
-                      "value": "2026-12-15T18:00:00.000Z",
-                      "key": "fechaFin",
-                      "description": "Fecha máxima de finalización de actividades",
-                      "type": "text"
-                    },
-                    {
+                      "key": "cartaAceptacion",
                       "value": "",
-                      "key": "documento",
-                      "description": "Carta de aceptación (.docx, .pdf) o Formulario FCP-001A (.xlsx) para extracción de horas pactadas dinámicas",
+                      "description": "PDF obligatorio: Carta de Aceptación (CPP_ESFOT_001) completamente llena",
+                      "type": "file"
+                    },
+                    {
+                      "key": "SolicitudPracticas",
+                      "value": "",
+                      "description": "PDF obligatorio: Solicitud de Prácticas (FP-001) completamente llena y coincidente",
                       "type": "file"
                     }
                   ]
@@ -1799,7 +1826,7 @@
                     "aulas-virtuales"
                   ]
                 },
-                "description": "Crea y parametriza un aula virtual 1:1 procesando automáticamente la Carta de Aceptación (.docx, .pdf) o Formulario Excel FCP-001A (.xlsx) adjunto para fijar dinámicamente las horas reglamentarias pactadas y la información de la entidad receptora."
+                "description": "Crea y parametriza un aula virtual exigiendo obligatoriamente los PDFs de cartaAceptacion (CPP_ESFOT_001) y SolicitudPracticas (FP-001) con validación cruzada."
               },
               "response": [
                 {
@@ -4037,7 +4064,7 @@
           "name": "6. Expediente y Formulario (FCP-001A)",
           "item": [
             {
-              "name": "Consultar Formulario FCP-001A",
+              "name": "Consultar Datos Generales del Formulario",
               "id": "f912a74e-ad8c-43ab-86a1-55bf1af48a09",
               "request": {
                 "auth": {
@@ -4078,7 +4105,7 @@
               "uid": "54606450-f912a74e-ad8c-43ab-86a1-55bf1af48a09"
             },
             {
-              "name": "Actualizar Formulario FCP-001A",
+              "name": "Actualizar Datos Generales del Formulario",
               "id": "8f3ea653-e137-457e-9592-db905916a78c",
               "request": {
                 "auth": {
@@ -4942,7 +4969,7 @@
           "name": "4. Dictamen Final y Acta",
           "item": [
             {
-              "name": "Consultar Formulario FCP-001A en Revisión",
+              "name": "Consultar Datos Generales del Formulario en Revisión",
               "id": "0a582007-4e63-4457-969d-6dae237facb1",
               "request": {
                 "auth": {

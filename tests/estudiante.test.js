@@ -422,4 +422,98 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       expect(mockFormulario.entidadReceptora.razonSocial).toBe('Empresa Corregida S.A.');
     });
   });
+
+  describe('Validaciones previas para generacion de borrador con IA', () => {
+    const entidadCompleta = {
+      ruc: '1790000000001',
+      direccion: 'Av. Amazonas N34-12',
+      correo: 'contacto@techsolutions.ec',
+      ciudad: 'Quito',
+      telefono: '022456789',
+      celular: '0998765432',
+      tipoEntidad: 'Privada',
+      responsable: 'Ing. Carlos Mendoza',
+      tutorEmpresarial: 'Ing. Carlos Mendoza',
+      tutorGeneral: 'Ing. Fernando Gomez',
+      tutorEspecifico: 'Ing. Maria Torres',
+      areaAsignada: 'Sistemas e Innovacion',
+      campoAmplio: 'TIC',
+      campoEspecifico: 'Desarrollo de Software',
+      razonSocial: 'TECH SOLUTIONS S.A.'
+    };
+
+    const horarioCompleto = {
+      horaInicio: '08:00',
+      horaFin: '12:00',
+      horasSemanales: 20
+    };
+
+    it('debe rechazar con 400 si faltan datos generales en entidadReceptora o horarioSemanal', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula1',
+        estudiante: 'est1',
+        horasRequeridas: 80,
+        modalidad: 'laboral'
+      });
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        entidadReceptora: { ...entidadCompleta, ruc: '', direccion: '' },
+        horarioSemanal: horarioCompleto
+      });
+
+      await expect(asistenteIaService.generarBorradorInforme('aula1', 'est1')).rejects.toMatchObject({
+        statusCode: 400
+      });
+    });
+
+    it('debe rechazar con 400 si el estudiante aun no completa el 100% de las horas del aula', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula1',
+        estudiante: 'est1',
+        horasRequeridas: 80,
+        modalidad: 'laboral'
+      });
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        entidadReceptora: entidadCompleta,
+        horarioSemanal: horarioCompleto
+      });
+      jest.spyOn(actividadService, 'calcularHorasAula').mockResolvedValue({
+        horasAprobadas: 40,
+        cumplioRequisito: false
+      });
+
+      await expect(asistenteIaService.generarBorradorInforme('aula1', 'est1')).rejects.toMatchObject({
+        statusCode: 400
+      });
+    });
+
+    it('debe generar el borrador si todos los datos generales estan llenos y las horas estan al 100%', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula1',
+        estudiante: 'est1',
+        horasRequeridas: 80,
+        modalidad: 'laboral'
+      });
+      const mockForm = {
+        entidadReceptora: entidadCompleta,
+        horarioSemanal: horarioCompleto,
+        contenidoIa: {},
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue(mockForm);
+      jest.spyOn(actividadService, 'calcularHorasAula').mockResolvedValue({
+        horasAprobadas: 80,
+        cumplioRequisito: true
+      });
+      jest.spyOn(ActividadLaboral, 'find').mockReturnValue({
+        sort: jest.fn().mockResolvedValue([
+          { descripcion: 'Desarrollo de APIs REST con Express y MongoDB', horas: 80 }
+        ])
+      });
+
+      const res = await asistenteIaService.generarBorradorInforme('aula1', 'est1');
+      expect(res.success).toBe(true);
+      expect(res.formulario.totalHoras).toBe(80);
+      expect(mockForm.save).toHaveBeenCalledTimes(1);
+    });
+  });
 });

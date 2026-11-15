@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles --forceExit"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles --forceExit",
+    "seed:horas": "node src/infrastructure/database/scripts/seedHorasLaborales.js",
+    "rollback:horas": "node src/infrastructure/database/scripts/seedHorasLaborales.js --rollback"
   },
   "keywords": [
     "nodejs",
