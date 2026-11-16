@@ -82,6 +82,20 @@ export const adminController = {
     }
   },
 
+  async crearAulaLaboral(req, res, next) {
+    try {
+      const archivos = req.files || (req.file ? { documento: [req.file] } : null);
+      const aula = await adminOrchestrator.crearAulaLaboral(req.body, archivos);
+      res.status(201).json({
+        success: true,
+        message: 'Aula virtual laboral creada y parametrizada con exito',
+        datos: aula
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async listarAulas(req, res, next) {
     try {
       const aulas = await adminOrchestrator.listarAulas(req.query);

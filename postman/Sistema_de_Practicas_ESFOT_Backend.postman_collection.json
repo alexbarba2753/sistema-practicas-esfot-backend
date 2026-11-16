@@ -965,12 +965,6 @@
                           "type": "text"
                         },
                         {
-                          "key": "modalidad",
-                          "value": "laboral",
-                          "description": "Modalidad laboral",
-                          "type": "text"
-                        },
-                        {
                           "key": "carrera",
                           "value": "Desarrollo de Software",
                           "description": "Carrera del estudiante (usada para consultar su malla curricular en RAG)",
@@ -1003,13 +997,14 @@
                       ]
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/admin/aulas-virtuales",
+                      "raw": "{{baseUrl}}/admin/aulas-virtuales/laboral",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "admin",
-                        "aulas-virtuales"
+                        "aulas-virtuales",
+                        "laboral"
                       ]
                     },
                     "description": "Crea y parametriza un aula virtual de Prácticas Laborales exigiendo obligatoriamente los PDFs de cartaAceptacion (CPP_ESFOT_001) y SolicitudPracticas (FP-001)."

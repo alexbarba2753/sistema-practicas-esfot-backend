@@ -18,6 +18,7 @@ router.put('/usuarios/:id', adminController.actualizarUsuario);
 router.patch('/usuarios/:id/estado', adminController.cambiarEstadoUsuario);
 
 // 2. Parametrizacion y Gestion de Aulas Virtuales
+router.post('/aulas-virtuales/laboral', uploadAulasArchivos, adminController.crearAulaLaboral);
 router.post('/aulas-virtuales', uploadAulasArchivos, adminController.crearAula);
 router.get('/aulas-virtuales/pendientes-comision', adminController.listarExpedientesPendientesComision);
 router.post('/aulas-virtuales/:aulaId/dictamen-comision', adminController.dictamenFinalComision);

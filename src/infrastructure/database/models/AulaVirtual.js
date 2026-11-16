@@ -16,7 +16,7 @@ const aulaVirtualSchema = new mongoose.Schema(
     modalidad: {
       type: String,
       enum: Object.values(MODALIDADES),
-      required: [true, 'La modalidad es obligatoria']
+      default: MODALIDADES.LABORAL
     },
     carrera: {
       type: String,
@@ -84,7 +84,7 @@ const aulaVirtualSchema = new mongoose.Schema(
     }
   },
   {
-    collection: 'aulas_virtuales',
+    collection: 'aulas_virtuales_laborales',
     timestamps: true
   }
 );
