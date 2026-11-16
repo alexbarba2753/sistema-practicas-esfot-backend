@@ -123,6 +123,9 @@ export const expedienteService = {
 
     let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
     if (!formulario) {
+      formulario = await FormularioAprobacion.findOne({ aulaVirtual: aulaId });
+    }
+    if (!formulario) {
       const emp = aula.datosEmpresa || {};
       formulario = new FormularioPendiente({
         aulaVirtual: aulaId,
@@ -580,39 +583,32 @@ export const expedienteService = {
     const resumen = await actividadService.calcularHorasAula(aulaId);
 
     formulario.estado = 'aprobado';
+    formulario.totalHoras = resumen.horasAprobadas || formulario.totalHoras;
     formulario.resolucionComision = {
       avalaAprobacion: true,
       observacionesComision: observaciones || 'Aprobado formalmente por el administrador.',
       fechaResolucion: new Date(),
       revisadoPorAdmin: adminId
     };
-    await formulario.save();
+
+    const datosFormulario = typeof formulario.toObject === 'function' ? formulario.toObject() : { ...formulario };
+    delete datosFormulario._id;
+    delete datosFormulario.__v;
+
+    const formularioAprobado = await FormularioAprobacion.findOneAndUpdate(
+      { aulaVirtual: aulaId },
+      { $set: datosFormulario },
+      { upsert: true, new: true }
+    );
+
+    await FormularioPendiente.deleteOne({ _id: formulario._id });
 
     aula.estado = ESTADOS_AULA.CERRADA;
     await aula.save();
 
-    let formularioAprobado = await FormularioAprobacion.findOne({ aulaVirtual: aulaId });
-    if (!formularioAprobado) {
-      formularioAprobado = new FormularioAprobacion({
-        estudiante: aula.estudiante,
-        docenteTutor: aula.docenteTutor,
-        aulaVirtual: aulaId,
-        modalidad: aula.modalidad,
-        horasCompletadas: resumen.horasAprobadas,
-        horasRequeridas: aula.horasRequeridas
-      });
-    }
-
-    formularioAprobado.dictamen = 'Aprobado';
-    formularioAprobado.observaciones = observaciones || 'Cumplimiento satisfactorio de las horas y actividades de la practica.';
-    formularioAprobado.estado = 'aprobado';
-    formularioAprobado.aprobadoPorAdmin = adminId;
-    formularioAprobado.fechaEmision = new Date();
-    await formularioAprobado.save();
-
     return {
       success: true,
-      message: 'Practica aprobada definitivamente por el administrador y registrada en formularios_aprobados.',
+      message: 'Practica aprobada definitivamente por el administrador y movida a formularios_aprobados.',
       formularioAprobado,
       aulaEstado: aula.estado
     };
@@ -633,7 +629,9 @@ export const expedienteService = {
       throw errorHttp('No tienes permiso para descargar el formulario de esta aula', 403);
     }
 
-    const formPendiente = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    const formPendiente =
+      (await FormularioPendiente.findOne({ aulaVirtual: aulaId })) ||
+      (await FormularioAprobacion.findOne({ aulaVirtual: aulaId }));
     if (!formPendiente) {
       throw errorHttp(
         'Primero debe generar el borrador del informe antes de poder descargarlo en Excel',

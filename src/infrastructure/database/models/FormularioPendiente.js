@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { MODALIDADES } from '../../../domain/constants/practicasConstants.js';
 
-const formularioPendienteSchema = new mongoose.Schema(
-  {
+export function crearDefinicionFormulario() {
+  return {
     aulaVirtual: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'AulaVirtual',
@@ -82,7 +82,7 @@ const formularioPendienteSchema = new mongoose.Schema(
       completadoPorTutor: { type: Boolean, default: false },
       fechaRevisionTutor: { type: Date, default: null }
     },
-    // Seccion 7 del F_AA_119 / Seccion 10 del FCP_001A (Dictamen de la Comision de Practicas / Admin)
+    // Seccion 7 del F_AA_119 / Seccion 10 del FCP_001A (Dictamen del Administrador)
     resolucionComision: {
       avalaAprobacion: { type: Boolean, default: null },
       observacionesComision: { type: String, default: '' },
@@ -103,11 +103,12 @@ const formularioPendienteSchema = new mongoose.Schema(
       type: Date,
       default: null
     }
-  },
-  {
-    collection: 'formularios_pendientes',
-    timestamps: true
-  }
-);
+  };
+}
+
+const formularioPendienteSchema = new mongoose.Schema(crearDefinicionFormulario(), {
+  collection: 'formularios_pendientes',
+  timestamps: true
+});
 
 export const FormularioPendiente = mongoose.model('FormularioPendiente', formularioPendienteSchema);
