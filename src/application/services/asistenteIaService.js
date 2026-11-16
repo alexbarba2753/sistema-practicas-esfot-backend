@@ -188,6 +188,10 @@ export const asistenteIaService = {
       throw errorHttp('Primero debes consultar y completar los datos generales del formulario antes de generar con IA', 400);
     }
 
+    if (aula.expedienteEntregado && formulario.estado !== 'observado') {
+      throw errorHttp('El expediente ya fue entregado a revision; no puedes regenerar el borrador hasta que el docente lo devuelva', 403);
+    }
+
     // 1. Validar que todos los datos generales obligatorios del F_AA_119 esten completos
     const er = formulario.entidadReceptora || {};
     const hs = formulario.horarioSemanal || {};

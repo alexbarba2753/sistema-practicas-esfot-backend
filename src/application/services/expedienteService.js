@@ -214,6 +214,64 @@ export const expedienteService = {
     return formatearDatosGeneralesFormulario(formulario, aula);
   },
 
+  async actualizarFormularioPendienteDocente(aulaId, docenteId, datos) {
+    const queryAula = AulaVirtual.findOne({ _id: aulaId, docenteTutor: docenteId });
+    const aula = typeof queryAula?.populate === 'function'
+      ? await queryAula.populate('estudiante', 'nombres apellidos cedula correo')
+      : await queryAula;
+    if (!aula) throw errorHttp('Aula virtual no encontrada o no asignada a este docente tutor', 404);
+
+    if (aula.estado === ESTADOS_AULA.CERRADA) {
+      throw errorHttp('El aula virtual ya se encuentra cerrada; no se puede modificar el formulario', 403);
+    }
+
+    let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (!formulario) {
+      throw errorHttp('No se encontro el formulario pendiente del aula', 404);
+    }
+
+    if (datos.entidadReceptora) {
+      const actual = typeof formulario.entidadReceptora?.toObject === 'function'
+        ? formulario.entidadReceptora.toObject()
+        : (formulario.entidadReceptora || {});
+      const filtrado = {};
+      for (const campo of CAMPOS_ENTIDAD_F_AA_119) {
+        if (datos.entidadReceptora[campo] !== undefined) {
+          filtrado[campo] = datos.entidadReceptora[campo];
+        }
+      }
+      formulario.entidadReceptora = { ...actual, ...filtrado };
+    }
+
+    const creditos = datos.creditosAprobados ?? datos.datosPracticante?.creditosAprobados;
+    if (creditos !== undefined) {
+      formulario.creditosAprobados = Number(creditos);
+    }
+
+    if (datos.horarioSemanal) {
+      const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
+        ? formulario.horarioSemanal.toObject()
+        : (formulario.horarioSemanal || {});
+      const horarioFiltrado = {};
+      for (const campo of ['horaInicio', 'horaFin', 'horasSemanales', 'observacionesFechas']) {
+        if (datos.horarioSemanal[campo] !== undefined) {
+          horarioFiltrado[campo] = datos.horarioSemanal[campo];
+        }
+      }
+      formulario.horarioSemanal = { ...actualHorario, ...horarioFiltrado };
+    }
+
+    if (datos.contenidoIa) {
+      const actualIa = typeof formulario.contenidoIa?.toObject === 'function'
+        ? formulario.contenidoIa.toObject()
+        : (formulario.contenidoIa || {});
+      formulario.contenidoIa = { ...actualIa, ...datos.contenidoIa };
+    }
+
+    await formulario.save();
+    return formatearDatosGeneralesFormulario(formulario, aula);
+  },
+
   // Entrega formal del expediente completo de practicas al docente tutor para su calificacion
   async entregarExpediente(aulaId, estudianteId) {
     const aula = await AulaVirtual.findById(aulaId);
@@ -322,7 +380,7 @@ export const expedienteService = {
     };
   },
 
-  // Dictamen del docente tutor: aprobar y cerrar el aula o devolver con observaciones al estudiante
+  // Dictamen del docente tutor: aprobar (pasa a revision final del admin) o devolver con observaciones al estudiante
   async cerrarProcesoDocente(aulaId, docenteId, datos = {}) {
     const aula = await AulaVirtual.findOne({ _id: aulaId, docenteTutor: docenteId });
     if (!aula) throw errorHttp('Aula virtual no encontrada o no asignada a este docente tutor', 404);
@@ -347,6 +405,9 @@ export const expedienteService = {
     const observaciones = (datos.observaciones ?? datos.observacionesFinales ?? '').trim();
 
     let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (!formulario) {
+      throw errorHttp('No se encontro el formulario pendiente del aula', 404);
+    }
 
     if (dictamen === 'No Aprobado') {
       if (!observaciones) {
@@ -356,52 +417,33 @@ export const expedienteService = {
       aula.expedienteEntregado = false;
       await aula.save();
 
-      if (formulario) {
-        formulario.estado = 'observado';
-        formulario.seguimientoTutor.observacionesMejora = observaciones;
-        await formulario.save();
-      }
+      formulario.estado = 'observado';
+      formulario.seguimientoTutor.observacionesMejora = observaciones;
+      await formulario.save();
 
       return {
         success: true,
         message: 'Expediente devuelto al estudiante con observaciones del docente tutor.',
         dictamen,
         observaciones,
+        formularioEstado: formulario.estado,
         aulaEstado: aula.estado
       };
     }
 
-    aula.estado = ESTADOS_AULA.CERRADA;
-    await aula.save();
-
-    let acta = await FormularioAprobacion.findOne({ aulaVirtual: aulaId });
-    if (!acta) {
-      acta = new FormularioAprobacion({
-        estudiante: aula.estudiante,
-        docenteTutor: docenteId,
-        aulaVirtual: aulaId,
-        modalidad: aula.modalidad,
-        horasCompletadas: resumen.horasAprobadas,
-        horasRequeridas: aula.horasRequeridas
-      });
+    // Aprobado por el docente: permanece en formularios_pendientes hasta el veredicto final del administrador
+    formulario.estado = 'aprobado_docente';
+    if (observaciones) {
+      formulario.seguimientoTutor.observacionesMejora = observaciones;
     }
-
-    acta.dictamen = 'Aprobado';
-    acta.observacionesFinales = observaciones || 'Cumplimiento satisfactorio de las horas y actividades de la practica.';
-    acta.estado = 'aprobado';
-    acta.fechaEmision = new Date();
-    await acta.save();
-
-    if (formulario) {
-      formulario.estado = 'aprobado';
-      await formulario.save();
-    }
+    await formulario.save();
 
     return {
       success: true,
-      message: 'Practica aprobada y cerrada formalmente por el docente tutor.',
+      message: 'Formulario aprobado por el docente tutor y remitido para aprobación final del administrador.',
       dictamen: 'Aprobado',
-      observaciones: acta.observacionesFinales,
+      observaciones: observaciones || formulario.seguimientoTutor?.observacionesMejora || '',
+      formularioEstado: formulario.estado,
       aulaEstado: aula.estado
     };
   },
@@ -479,7 +521,7 @@ export const expedienteService = {
   // Consulta los expedientes remitidos para dictamen de la Comision de Practicas Preprofesionales (CPP)
   async listarExpedientesPendientesComision() {
     const formularios = await FormularioPendiente.find({
-      estado: { $in: ['pendiente_comision', 'en_revision'] }
+      estado: { $in: ['aprobado_docente', 'pendiente_comision'] }
     })
       .populate('estudiante', 'nombres apellidos cedula correo telefono')
       .populate({
@@ -495,22 +537,32 @@ export const expedienteService = {
     };
   },
 
-  // Dictamen final por parte de la Comision de Practicas Preprofesionales / Administrador (Punto 7)
+  // Veredicto final del Administrador: aprobar (mueve a formularios_aprobados y cierra aula) o rechazar (devuelve al docente)
   async dictamenFinalComision(aulaId, adminId, datos = {}) {
     const aula = await AulaVirtual.findById(aulaId);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
+    if (aula.estado === ESTADOS_AULA.CERRADA) {
+      throw errorHttp('Esta aula virtual ya fue cerrada formalmente con anterioridad', 400);
+    }
+
     let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
     if (!formulario) throw errorHttp('No se encontro el formulario pendiente del aula', 404);
 
-    const avalaAprobacion = Boolean(datos.avalaAprobacion === true || String(datos.avalaAprobacion).toLowerCase() === 'true');
+    const aprobado = datos.dictamen
+      ? datos.dictamen !== 'No Aprobado'
+      : Boolean(datos.avalaAprobacion === true || String(datos.avalaAprobacion).toLowerCase() === 'true');
+    const observaciones = (datos.observaciones ?? '').trim();
 
-    if (!avalaAprobacion) {
-      // Regresa al docente tutor con observaciones de la comision
+    if (!aprobado) {
+      if (!observaciones) {
+        throw errorHttp('Debe ingresar las observaciones al devolver el expediente al docente tutor', 400);
+      }
+
       formulario.estado = 'devuelto_a_tutor';
       formulario.resolucionComision = {
         avalaAprobacion: false,
-        observacionesComision: datos.observaciones || 'La Comision de Practicas solicita correcciones al tutor academico.',
+        observacionesComision: observaciones,
         fechaResolucion: new Date(),
         revisadoPorAdmin: adminId
       };
@@ -518,26 +570,52 @@ export const expedienteService = {
 
       return {
         success: true,
-        message: 'Expediente devuelto al docente tutor para correcciones segun observaciones de la Comision',
-        formulario
+        message: 'Expediente devuelto al docente tutor con observaciones del administrador.',
+        dictamen: 'No Aprobado',
+        observaciones,
+        formularioEstado: formulario.estado
       };
     }
 
-    // Si la comision aprueba, se cierra formalmente y se emite el acta oficial
+    const resumen = await actividadService.calcularHorasAula(aulaId);
+
     formulario.estado = 'aprobado';
     formulario.resolucionComision = {
       avalaAprobacion: true,
-      observacionesComision: datos.observaciones || 'Aprobacion reglamentaria avalada por la Comision de Practicas.',
+      observacionesComision: observaciones || 'Aprobado formalmente por el administrador.',
       fechaResolucion: new Date(),
       revisadoPorAdmin: adminId
     };
     await formulario.save();
 
-    return await this.cerrarProcesoDocente(aulaId, aula.docenteTutor, {
-      dictamen: 'Aprobado',
-      calificacion: datos.calificacion || 20,
-      observacionesFinales: datos.observaciones || 'Aprobado formalmente por la Comision de Practicas.'
-    });
+    aula.estado = ESTADOS_AULA.CERRADA;
+    await aula.save();
+
+    let formularioAprobado = await FormularioAprobacion.findOne({ aulaVirtual: aulaId });
+    if (!formularioAprobado) {
+      formularioAprobado = new FormularioAprobacion({
+        estudiante: aula.estudiante,
+        docenteTutor: aula.docenteTutor,
+        aulaVirtual: aulaId,
+        modalidad: aula.modalidad,
+        horasCompletadas: resumen.horasAprobadas,
+        horasRequeridas: aula.horasRequeridas
+      });
+    }
+
+    formularioAprobado.dictamen = 'Aprobado';
+    formularioAprobado.observaciones = observaciones || 'Cumplimiento satisfactorio de las horas y actividades de la practica.';
+    formularioAprobado.estado = 'aprobado';
+    formularioAprobado.aprobadoPorAdmin = adminId;
+    formularioAprobado.fechaEmision = new Date();
+    await formularioAprobado.save();
+
+    return {
+      success: true,
+      message: 'Practica aprobada definitivamente por el administrador y registrada en formularios_aprobados.',
+      formularioAprobado,
+      aulaEstado: aula.estado
+    };
   },
 
   // Genera y transmite el informe tecnico en Excel oficial para estudiante o docente

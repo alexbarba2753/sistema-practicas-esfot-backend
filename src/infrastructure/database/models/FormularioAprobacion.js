@@ -37,47 +37,28 @@ const formularioAprobacionSchema = new mongoose.Schema(
       enum: ['Aprobado', 'No Aprobado'],
       default: 'Aprobado'
     },
-    calificacionTutor: {
-      type: Number,
-      min: 0,
-      max: 20,
-      default: null
-    },
-    observacionesFinales: {
+    observaciones: {
       type: String,
       trim: true,
       default: ''
     },
     estado: {
       type: String,
-      enum: ['en_revision', 'aprobado', 'rechazado', 'devuelto_a_tutor'],
-      default: 'en_revision'
+      enum: ['aprobado', 'rechazado'],
+      default: 'aprobado'
     },
-    seguimientosEjecutados: [
-      {
-        actividad: { type: String },
-        fecha: { type: Date },
-        resultados: { type: String }
-      }
-    ],
-    comisionPPP: {
-      avalaAprobacion: { type: Boolean, default: true },
-      observaciones: { type: String, default: 'Aprobación reglamentaria avalada por la Comisión de Prácticas.' },
-      revisadoPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
-      fechaAval: { type: Date, default: null }
+    aprobadoPorAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario',
+      default: null
     },
     fechaEmision: {
       type: Date,
       default: Date.now
-    },
-    archivoActaUrl: {
-      type: String,
-      trim: true,
-      default: ''
     }
   },
   {
-    collection: 'formularios_aprobaciones',
+    collection: 'formularios_aprobados',
     timestamps: true
   }
 );

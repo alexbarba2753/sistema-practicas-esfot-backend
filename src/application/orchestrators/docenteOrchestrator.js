@@ -49,6 +49,11 @@ export const docenteOrchestrator = {
     return await expedienteService.obtenerFormularioPendiente(aulaId);
   },
 
+  // permite al docente tutor corregir o ajustar datos del formulario/borrador entregado
+  async actualizarFormularioPendiente(aulaId, docenteId, datos) {
+    return await expedienteService.actualizarFormularioPendienteDocente(aulaId, docenteId, datos);
+  },
+
   // registra las 3 actividades de seguimiento obligatorio y la evaluacion cualitativa del tutor (punto 6/9)
   async evaluarSeguimientoDocente(aulaId, docenteId, datos) {
     return await expedienteService.evaluarSeguimientoDocente(aulaId, docenteId, datos);

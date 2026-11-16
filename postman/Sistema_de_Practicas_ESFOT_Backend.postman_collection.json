@@ -2628,7 +2628,7 @@
               "uid": "54606450-2067f762-de47-0a0f-6dd5-745e36a30ff3"
             },
             {
-              "name": "Emitir Dictamen Final Comisión (Aprobación o Devolución)",
+              "name": "Veredicto Final Administrador (Aprobar o Devolver)",
               "id": "adc8cfa8-f25e-92fb-90fa-e94b5db55ae6",
               "request": {
                 "auth": {
@@ -2651,7 +2651,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"avalaAprobacion\": true,\n  \"observaciones\": \"Aprobación reglamentaria avalada por la Comisión de Prácticas Preprofesionales (CPP) según sesión ordinaria.\",\n  \"calificacion\": 20\n}",
+                  "raw": "{\n  \"dictamen\": \"Aprobado\",\n  \"observaciones\": \"Expediente verificado y aprobado definitivamente por el administrador.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2670,7 +2670,7 @@
                     "dictamen-comision"
                   ]
                 },
-                "description": "Emite la resolución final de la Comisión de Prácticas (CPP). Si aprueba (avalaAprobacion: true), formaliza el cierre del aula emitiendo el Acta oficial FCP-004. Si devuelve (avalaAprobacion: false), retorna el expediente al tutor docente asignando estado 'devuelto_a_tutor' con observaciones para subsanación."
+                "description": "Emite el veredicto final del Administrador (Aprobado para pasar a formularios_aprobados y cerrar el aula, o No Aprobado para devolver al docente tutor con observaciones)."
               },
               "response": [
                 {
@@ -4850,6 +4850,51 @@
               "createdAt": "2026-11-09T03:54:18.000Z",
               "updatedAt": "2026-11-10T01:18:33.000Z",
               "uid": "54606450-0a582007-4e63-4457-969d-6dae237facb1"
+            },
+            {
+              "name": "Editar Formulario / Borrador del Estudiante (Docente)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"entidadReceptora\": {\n    \"razonSocial\": \"TECH SOLUTIONS S.A.\",\n    \"responsable\": \"Ing. Carlos Mendoza\"\n  },\n  \"contenidoIa\": {\n    \"asignaturasUtilidad\": \"• Programación (TDSD214): Desarrollo modular\\n• Bases de Datos (TDSD224): Persistencia\",\n    \"principalesActividades\": \"• Implementación de endpoints REST.\\n• Pruebas unitarias automatizadas.\",\n    \"habilidadesAdquiridas\": \"Consolidación de competencias en desarrollo backend.\",\n    \"observacionesTemas\": \"Uso avanzado de integración continua y pruebas.\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/formulario-pendiente",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "docente",
+                    "aulas",
+                    "{{aulaId}}",
+                    "formulario-pendiente"
+                  ]
+                },
+                "description": "Permite al docente tutor editar directamente datos generales o el borrador del informe (contenidoIa) cuando el estudiante ya entregó el expediente."
+              },
+              "response": []
             },
             {
               "name": "Dictamen del Docente (Aprobar o Devolver)",

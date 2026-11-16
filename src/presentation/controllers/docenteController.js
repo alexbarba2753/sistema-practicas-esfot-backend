@@ -95,6 +95,20 @@ export const docenteController = {
     }
   },
 
+  async actualizarFormularioPendiente(req, res, next) {
+    try {
+      const { aulaId } = req.params;
+      const formulario = await docenteOrchestrator.actualizarFormularioPendiente(aulaId, req.usuario.id, req.body);
+      res.json({
+        success: true,
+        message: 'Formulario actualizado correctamente por el docente tutor',
+        formulario
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async evaluarSeguimientoDocente(req, res, next) {
     try {
       const { aulaId } = req.params;

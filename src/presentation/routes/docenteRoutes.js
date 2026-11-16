@@ -27,6 +27,7 @@ router.put('/convalidaciones/:certificadoId/evaluar', docenteController.evaluarC
 
 // 5. Revision y evaluacion de seguimiento del formulario F_AA_119 / FCP-001A
 router.get('/aulas/:aulaId/formulario-pendiente', docenteController.obtenerFormularioPendiente);
+router.put('/aulas/:aulaId/formulario-pendiente', docenteController.actualizarFormularioPendiente);
 router.put('/aulas/:aulaId/evaluar-formulario', docenteController.evaluarSeguimientoDocente);
 router.get('/aulas/:aulaId/descargar-informe', docenteController.descargarInforme);
 
