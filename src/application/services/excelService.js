@@ -105,10 +105,15 @@ export const excelService = {
     // 4. Datos de la practica
     if (nombreCompletoDocente) worksheet.getCell('D33').value = nombreCompletoDocente;
     if (contenido.asignaturasUtilidad) {
+      const textoMaterias = limpiarTextoParaExcel(contenido.asignaturasUtilidad)
+        .replace(/;\s*/g, '\n• ')
+        .replace(/^([^•\n])/, '• $1');
       const cellA43 = worksheet.getCell('A43');
-      cellA43.value = limpiarTextoParaExcel(contenido.asignaturasUtilidad);
+      cellA43.value = textoMaterias;
       cellA43.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cellA43.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      const numLineasMaterias = textoMaterias.split('\n').length;
+      worksheet.getRow(43).height = Math.max(45, numLineasMaterias * 15 + 8);
     }
 
     // 5. Actividades desarrolladas
@@ -147,30 +152,54 @@ export const excelService = {
     worksheet.getCell('I54').value = formularioPendiente?.totalHoras || aula?.horasRequeridas || 240;
 
     if (contenido.principalesActividades) {
+      const textoAct = limpiarTextoParaExcel(contenido.principalesActividades);
       const cellA56 = worksheet.getCell('A56');
-      cellA56.value = limpiarTextoParaExcel(contenido.principalesActividades);
+      cellA56.value = textoAct;
       cellA56.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cellA56.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      const lineasAct = Math.max(textoAct.split('\n').length, Math.ceil(textoAct.length / 110));
+      worksheet.getRow(56).height = Math.max(60, lineasAct * 14 + 10);
     }
 
     if (contenido.habilidadesAdquiridas) {
+      const textoHab = limpiarTextoParaExcel(contenido.habilidadesAdquiridas);
       const cellA58 = worksheet.getCell('A58');
-      cellA58.value = limpiarTextoParaExcel(contenido.habilidadesAdquiridas);
+      cellA58.value = textoHab;
       cellA58.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cellA58.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      const lineasHab = Math.max(textoHab.split('\n').length, Math.ceil(textoHab.length / 110));
+      worksheet.getRow(58).height = Math.max(45, lineasHab * 14 + 10);
     }
 
-    const cellA62 = worksheet.getCell('A62');
-    cellA62.value = limpiarTextoParaExcel(
+    const textoObs = limpiarTextoParaExcel(
       contenido.observacionesTemas ||
-        'Durante la practica se complementaron los conocimientos academicos con estandares de desarrollo agil y buenas practicas.'
+        'Durante la ejecución de las actividades asignadas fue necesario profundizar de manera autónoma en herramientas de versionamiento colaborativo, pruebas de integración y despliegue de servicios, complementando los contenidos teóricos revisados en clases.'
     );
+    const cellA62 = worksheet.getCell('A62');
+    cellA62.value = textoObs;
     cellA62.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
     cellA62.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+    const lineasObs = Math.max(textoObs.split('\n').length, Math.ceil(textoObs.length / 110));
+    worksheet.getRow(62).height = Math.max(40, lineasObs * 14 + 10);
 
-    // 6. Firmas y datos del tutor
-    if (nombreCompletoDocente) worksheet.getCell('H103').value = nombreCompletoDocente;
-    if (docente?.cedula) worksheet.getCell('H104').value = docente.cedula;
+    // Evaluacion cualitativa: marcar X en Excelente (columna G, filas 66-69)
+    ['G66', 'G67', 'G68', 'G69'].forEach((ref) => {
+      const c = worksheet.getCell(ref);
+      c.value = 'X';
+      c.font = { name: 'Tahoma', size: 9, bold: true, color: { argb: 'FF000000' } };
+      c.alignment = { vertical: 'middle', horizontal: 'center' };
+    });
+
+    // 6. Seguimiento: llamada telefonica al responsable de la entidad receptora
+    if (entidad.responsable) {
+      worksheet.getCell('A80').value = `Llamada telefónica a ${entidad.responsable}, Supervisor de las Prácticas`;
+    }
+
+    // 8. Firmas de responsabilidad: izquierda Tutor EPN, derecha Entidad Receptora
+    if (nombreCompletoDocente) worksheet.getCell('B103').value = nombreCompletoDocente;
+    if (docente?.cedula) worksheet.getCell('B104').value = docente.cedula;
+    worksheet.getCell('G103').value = entidad.responsable || '';
+    worksheet.getCell('G104').value = entidad.cedulaResponsable || '';
 
     const buffer = await workbook.xlsx.writeBuffer();
     const safeCedula = (estudiante?.cedula || 'ESTUDIANTE').replace(/[^a-zA-Z0-9_-]/g, '');

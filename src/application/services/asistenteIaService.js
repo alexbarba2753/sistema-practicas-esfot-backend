@@ -166,17 +166,98 @@ export const asistenteIaService = {
       throw errorHttp('No existen actividades registradas en la bitacora para generar el informe', 400);
     }
 
-    const descripciones = actividades.map((a) => a.descripcion).join('. ');
     const totalHoras = resumenHoras.horasAprobadas;
-
     formulario.totalHoras = totalHoras;
-    formulario.contenidoIa.principalesActividades = descripciones.slice(0, 1000);
-    formulario.contenidoIa.asignaturasUtilidad =
-      'Programación Orientada a Objetos (TDSD214): Estructuras de control y servicios; Bases de Datos (TDSD224): Modelado y persistencia; Ingeniería de Software (TDSD314): Arquitectura y pruebas; Metodologías Ágiles (TDSD324): Gestión ágil de proyectos.';
-    formulario.contenidoIa.habilidadesAdquiridas =
-      'Desarrollo de servicios backend RESTful, persistencia de datos relacional y documental, aplicación de buenas prácticas de arquitectura limpia y trabajo colaborativo.';
-    formulario.contenidoIa.observacionesTemas =
-      'Se fortalecieron competencias en herramientas de versionamiento profesional, pruebas unitarias y despliegue de soluciones tecnológicas alineadas al perfil de egreso.';
+
+    const descripcionesUnicas = [...new Set(actividades.map((a) => (a.descripcion || '').trim()).filter(Boolean))];
+    const bitacoraTexto = actividades
+      .map((a, idx) => `${idx + 1}. (${a.horas}h) ${a.descripcion}`)
+      .join('\n');
+
+    if (aula.modalidad === MODALIDADES.LABORAL) {
+      let generado = null;
+      const client = getGroqClient();
+
+      if (client) {
+        try {
+          const completion = await client.chat.completions.create({
+            model: 'llama-3.1-8b-instant',
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional). Debes devolver EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redacta en español formal académico, sintetizando sin copiar textualmente la bitácora.'
+              },
+              {
+                role: 'user',
+                content: `Área asignada: ${er.areaAsignada || 'Desarrollo de Software'}
+Total de horas cumplidas: ${totalHoras}h
+Bitácora de actividades registradas por el estudiante:
+${bitacoraTexto.slice(0, 4000)}
+
+Genera el JSON con estas reglas estrictas:
+1. "asignaturasUtilidad": String con 3 a 5 asignaturas relevantes de la carrera (con código y temática aplicada), UNA POR LÍNEA empezando cada línea con "• " (ejemplo: "• Programación Orientada a Objetos (TDSD214): Estructuras de control y servicios\\n• Bases de Datos (TDSD224): Modelado y persistencia").
+2. "principalesActividades": String con un resumen sintetizado (NO copiado textualmente ni repetido) de las principales actividades desarrolladas, separado en 4 a 6 viñetas, UNA POR LÍNEA empezando cada línea con "• ".
+3. "habilidadesAdquiridas": String con un párrafo técnico amplio (3 a 5 líneas, 50 a 80 palabras) sobre las habilidades, destrezas y conocimientos técnicos y profesionales adquiridos.
+4. "observacionesTemas": String con un párrafo amplio (2 a 4 líneas, 40 a 65 palabras) indicando los temas, herramientas o estándares que no se revisaron a profundidad en clases y que fueron necesarios durante la práctica.`
+              }
+            ],
+            temperature: 0.3,
+            max_tokens: 900
+          });
+
+          const rawJson = completion.choices[0]?.message?.content;
+          if (rawJson) {
+            generado = JSON.parse(rawJson);
+          }
+        } catch (err) {
+          // Si falla la llamada externa, se usa el sintetizador local de respaldo
+        }
+      }
+
+      const asignaturasFallback = [
+        '• Programación Orientada a Objetos (TDSD214): Diseño modular, servicios y lógica de negocio',
+        '• Bases de Datos (TDSD224): Modelado de datos, consultas y persistencia documental',
+        '• Ingeniería de Software (TDSD314): Arquitectura por capas, pruebas unitarias y control de calidad',
+        '• Metodologías Ágiles (TDSD324): Planificación iterativa y gestión colaborativa del proyecto'
+      ].join('\n');
+
+      const actividadesFallback = descripcionesUnicas
+        .slice(0, 6)
+        .map((d) => `• ${d.replace(/\.+$/, '')}.`)
+        .join('\n');
+
+      formulario.contenidoIa.asignaturasUtilidad =
+        generado?.asignaturasUtilidad || asignaturasFallback;
+      formulario.contenidoIa.principalesActividades =
+        generado?.principalesActividades || actividadesFallback;
+      formulario.contenidoIa.habilidadesAdquiridas =
+        generado?.habilidadesAdquiridas ||
+        'Durante el desarrollo de la práctica preprofesional se consolidaron competencias técnicas en el diseño e implementación de servicios backend RESTful, modelado y optimización de consultas en bases de datos, validación documental automatizada y aplicación de pruebas unitarias. Asimismo, se fortalecieron habilidades blandas como el trabajo colaborativo, la comunicación técnica efectiva, la resolución estructurada de incidencias y el cumplimiento de estándares de calidad en entornos reales de producción.';
+      formulario.contenidoIa.observacionesTemas =
+        generado?.observacionesTemas ||
+        'Durante la ejecución de las actividades asignadas fue necesario profundizar de manera autónoma en herramientas avanzadas de versionamiento colaborativo, automatización de pruebas de integración, manejo de flujos de autenticación basados en tokens y despliegue continuo de servicios, complementando así los fundamentos teóricos revisados en las asignaturas de la carrera.';
+      formulario.fechaGeneracionIa = new Date();
+
+      await formulario.save();
+
+      const objForm = typeof formulario.toObject === 'function' ? formulario.toObject() : { ...formulario };
+      objForm.contenidoIa = {
+        asignaturasUtilidad: formulario.contenidoIa.asignaturasUtilidad,
+        principalesActividades: formulario.contenidoIa.principalesActividades,
+        habilidadesAdquiridas: formulario.contenidoIa.habilidadesAdquiridas,
+        observacionesTemas: formulario.contenidoIa.observacionesTemas
+      };
+
+      return {
+        success: true,
+        message: 'Borrador del informe generado exitosamente con IA a partir de la bitácora',
+        formulario: objForm
+      };
+    }
+
+    const descripciones = descripcionesUnicas.join('. ');
     formulario.contenidoIa.resumenActividades = descripciones.slice(0, 800);
     formulario.contenidoIa.contribucionConocimientos =
       'Las actividades técnicas permitieron consolidar el razonamiento lógico, diseño modular y aseguramiento de calidad del software en entornos reales.';
