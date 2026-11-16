@@ -3983,10 +3983,10 @@
           "uid": "54606450-496ec51e-cdaf-48c8-bcad-d64cae682049"
         },
         {
-          "name": "6. Expediente y Formulario (FCP-001A)",
+          "name": "6. Prácticas Laborales",
           "item": [
             {
-              "name": "Consultar Datos Generales del Formulario",
+              "name": "Consultar Datos del Formulario",
               "id": "f912a74e-ad8c-43ab-86a1-55bf1af48a09",
               "request": {
                 "auth": {
@@ -4021,7 +4021,7 @@
               "uid": "54606450-f912a74e-ad8c-43ab-86a1-55bf1af48a09"
             },
             {
-              "name": "Actualizar Datos Generales del Formulario",
+              "name": "Actualizar Datos del Formulario",
               "id": "8f3ea653-e137-457e-9592-db905916a78c",
               "request": {
                 "auth": {
@@ -4191,7 +4191,7 @@
               "uid": "54606450-8f3ea653-e137-457e-9592-db905916a78c"
             },
             {
-              "name": "Generar Borrador Asistido por IA",
+              "name": "Generar Borrador con IA",
               "id": "6da92c82-74da-44e5-8b3e-53be09676aba",
               "request": {
                 "auth": {
@@ -4275,7 +4275,7 @@
               "uid": "54606450-6da92c82-74da-44e5-8b3e-53be09676aba"
             },
             {
-              "name": "Entregar Expediente al Docente Tutor",
+              "name": "Entregar Expediente al Docente",
               "id": "c21bc53c-ea75-42aa-a1e1-813e540ad89b",
               "request": {
                 "auth": {
@@ -4403,7 +4403,7 @@
               "uid": "54606450-c21bc53c-ea75-42aa-a1e1-813e540ad89b"
             },
             {
-              "name": "Descargar Informe Oficial en Excel (Laboral o Comunitario)",
+              "name": "Descargar Informe (F_AA_119)",
               "id": "2eb86dd2-3af1-4344-9e26-d4627227ee97",
               "request": {
                 "auth": {
@@ -4814,10 +4814,10 @@
           "uid": "54606450-96a47164-6cc7-4c43-8ee2-1aea6e62c05e"
         },
         {
-          "name": "4. Dictamen Final y Acta",
+          "name": "4. Prácticas Laborales",
           "item": [
             {
-              "name": "Consultar Datos Generales del Formulario",
+              "name": "Consultar Datos del Formulario",
               "id": "0a582007-4e63-4457-969d-6dae237facb1",
               "request": {
                 "auth": {
@@ -4852,7 +4852,7 @@
               "uid": "54606450-0a582007-4e63-4457-969d-6dae237facb1"
             },
             {
-              "name": "Editar Formulario / Borrador del Estudiante (Docente)",
+              "name": "Actualizar Datos del Formulario",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -4894,10 +4894,11 @@
                 },
                 "description": "Permite al docente tutor editar directamente datos generales o el borrador del informe (contenidoIa) cuando el estudiante ya entregó el expediente."
               },
-              "response": []
+              "response": [],
+              "id": "dbbd96dc-3f48-8770-39c3-54d81c8883c2"
             },
             {
-              "name": "Dictamen del Docente (Aprobar o Devolver)",
+              "name": "Emitir Dictamen del Docente (Aprobar o Devolver)",
               "id": "840e9517-2348-484b-a240-8111b2323d87",
               "request": {
                 "auth": {
@@ -5067,7 +5068,7 @@
               "uid": "54606450-840e9517-2348-484b-a240-8111b2323d87"
             },
             {
-              "name": "Descargar Informe F_AA_119",
+              "name": "Descargar Informe (F_AA_119)",
               "id": "0fdd14a0-e0eb-4f70-b3ed-dfa186c2fb96",
               "request": {
                 "auth": {
@@ -5102,7 +5103,7 @@
               "uid": "54606450-0fdd14a0-e0eb-4f70-b3ed-dfa186c2fb96"
             },
             {
-              "name": "Evaluar Seguimiento Docente (Sección 6 F_AA_119)",
+              "name": "Evaluar Seguimiento Docente (Sección 6)",
               "id": "cad1e853-fe0a-362c-77a7-baf2adaee9fc",
               "request": {
                 "auth": {
