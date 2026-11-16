@@ -3071,21 +3071,15 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/laborales",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/laborales",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "laborales"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Registra una jornada laboral cumplida con validacion de bloques de 10 minutos, maximo 8 horas y prevencion de duplicados."
@@ -3122,21 +3116,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/laborales",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/laborales",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "laborales"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Registra una jornada laboral cumplida con validacion de bloques de 10 minutos, maximo 8 horas y prevencion de duplicados."
@@ -3188,21 +3176,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/laborales",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/laborales",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "laborales"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Registra una jornada laboral cumplida con validacion de bloques de 10 minutos, maximo 8 horas y prevencion de duplicados."
@@ -3254,21 +3236,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/laborales",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/laborales",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "laborales"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Registra una jornada laboral cumplida con validacion de bloques de 10 minutos, maximo 8 horas y prevencion de duplicados."
@@ -3311,21 +3287,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/laborales",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/laborales",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "laborales"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Consulta el historial completo de jornadas laborales y el resumen acumulado de horas."
@@ -3377,10 +3347,6 @@
                   ],
                   "variable": [
                     {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    },
-                    {
                       "key": "actividadId",
                       "value": "6af261ba9415827be9a0179c"
                     }
@@ -3430,10 +3396,6 @@
                         ":actividadId"
                       ],
                       "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        },
                         {
                           "key": "actividadId",
                           "value": "6af261ba9415827be9a0179c"
@@ -3503,21 +3465,15 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/comunitarias",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/comunitarias",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "comunitarias"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af258edacffafee3a663cff"
-                    }
                   ]
                 },
                 "description": "Registra actividades de vinculacion comunitaria (hasta el tope de 96 horas)."
@@ -3554,21 +3510,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/comunitarias",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/comunitarias",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "comunitarias"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af258edacffafee3a663cff"
-                        }
                       ]
                     },
                     "description": "Registra actividades de vinculacion comunitaria (hasta el tope de 96 horas)."
@@ -3620,21 +3570,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/comunitarias",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/comunitarias",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "comunitarias"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af258edacffafee3a663cff"
-                        }
                       ]
                     },
                     "description": "Registra actividades de vinculacion comunitaria (hasta el tope de 96 horas)."
@@ -3677,21 +3621,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/comunitarias",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/comunitarias",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "comunitarias"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af258edacffafee3a663cff"
-                    }
                   ]
                 },
                 "description": "Consulta las actividades comunitarias registradas con total de horas cumplidas."
@@ -3742,10 +3680,6 @@
                     ":actividadId"
                   ],
                   "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    },
                     {
                       "key": "actividadId",
                       "value": "6af26f0acdd92fa4feb6de90"
@@ -3824,12 +3758,6 @@
                     "aulas",
                     "{{aulaId}}",
                     "convalidaciones"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af258edacffafee3a663cff"
-                    }
                   ]
                 },
                 "description": "Registra un certificado de curso externo (Cisco, Udemy, Google, etc.) para convalidación. Las horas quedan en estado pendiente para el aula seleccionada (laboral o comunitaria) hasta que el tutor las audite y acredite."
@@ -3875,12 +3803,6 @@
                         "aulas",
                         "{{aulaId}}",
                         "convalidaciones"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af258edacffafee3a663cff"
-                        }
                       ]
                     },
                     "description": "Registra un certificado de curso externo (Cisco, Udemy, Google, etc.) para convalidación. Las horas quedan en estado pendiente para el aula seleccionada (laboral o comunitaria) hasta que el tutor las audite y acredite."
@@ -3941,12 +3863,6 @@
                         "aulas",
                         "{{aulaId}}",
                         "convalidaciones"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af258edacffafee3a663cff"
-                        }
                       ]
                     },
                     "description": "Registra un certificado de curso externo (Cisco, Udemy, Google, etc.) para convalidación. Las horas quedan en estado pendiente para el aula seleccionada (laboral o comunitaria) hasta que el tutor las audite y acredite."
@@ -3998,12 +3914,6 @@
                     "aulas",
                     "{{aulaId}}",
                     "convalidaciones"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af258edacffafee3a663cff"
-                    }
                   ]
                 },
                 "description": "Consulta las certificaciones registradas, horas acreditadas por el tutor y estado de aprobacion."
@@ -4092,21 +4002,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/formulario-pendiente",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/formulario-pendiente",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "formulario-pendiente"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Obtiene el borrador o estado del formulario oficial de solicitud e informe tecnico."
@@ -4147,21 +4051,15 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/formulario-pendiente",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/formulario-pendiente",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "formulario-pendiente"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Permite editar la informacion de la entidad receptora, horario semanal y texto del informe con 0 consumo de tokens."
@@ -4198,21 +4096,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/formulario-pendiente",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/formulario-pendiente",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "formulario-pendiente"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Permite editar la informacion de la entidad receptora, horario semanal y texto del informe con 0 consumo de tokens."
@@ -4264,21 +4156,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/formulario-pendiente",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/formulario-pendiente",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "formulario-pendiente"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Permite editar la informacion de la entidad receptora, horario semanal y texto del informe con 0 consumo de tokens."
@@ -4321,22 +4207,16 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/ia/generar-informe",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/ia/generar-informe",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "ia",
                     "generar-informe"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Sintetiza automaticamente las bitacoras acumuladas del estudiante y redacta el borrador del informe tecnico usando IA."
@@ -4359,22 +4239,16 @@
                     "method": "POST",
                     "header": [],
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/ia/generar-informe",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/ia/generar-informe",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "ia",
                         "generar-informe"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Sintetiza automaticamente las bitacoras acumuladas del estudiante y redacta el borrador del informe tecnico usando IA."
@@ -4417,20 +4291,15 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/entregar-expediente",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/entregar-expediente",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "entregar-expediente"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId"
-                    }
                   ]
                 },
                 "description": "Realiza la entrega formal del expediente al docente tutor si se han completado las horas reglamentarias minimas."
@@ -4453,20 +4322,15 @@
                     "method": "POST",
                     "header": [],
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/entregar-expediente",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/entregar-expediente",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "entregar-expediente"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId"
-                        }
                       ]
                     },
                     "description": "Realiza la entrega formal del expediente al docente tutor si se han completado las horas reglamentarias minimas."
@@ -4504,20 +4368,15 @@
                     "method": "POST",
                     "header": [],
                     "url": {
-                      "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/entregar-expediente",
+                      "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/entregar-expediente",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "estudiante",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "entregar-expediente"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId"
-                        }
                       ]
                     },
                     "description": "Realiza la entrega formal del expediente al docente tutor si se han completado las horas reglamentarias minimas."
@@ -4560,20 +4419,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/estudiante/aulas/:aulaId/descargar-informe",
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/descargar-informe",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "estudiante",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "descargar-informe"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId"
-                    }
                   ]
                 },
                 "description": "Descarga el informe oficial en formato Excel (F_AA_119 para practicas laborales o FCP_001A para servicio comunitario). Requiere haber generado previamente el borrador con IA."
@@ -4652,20 +4506,14 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/docente/aulas/:aulaId",
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "docente",
                     "aulas",
-                    ":aulaId"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
+                    "{{aulaId}}"
                   ]
                 },
                 "description": "Obtiene el detalle individual del aula, datos del alumno, estado del expediente y resumen de actividades."
@@ -4701,21 +4549,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/docente/aulas/:aulaId/laborales",
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/laborales",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "docente",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "laborales"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Consulta las jornadas laborales del estudiante para su revision y retroalimentacion."
@@ -4798,21 +4640,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/docente/aulas/:aulaId/comunitarias",
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/comunitarias",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "docente",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "comunitarias"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af258edacffafee3a663cff"
-                    }
                   ]
                 },
                 "description": "Consulta las actividades comunitarias presentadas por el estudiante."
@@ -4997,21 +4833,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/docente/aulas/:aulaId/formulario-pendiente",
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/formulario-pendiente",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "docente",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "formulario-pendiente"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
-                    }
                   ]
                 },
                 "description": "Consulta el formulario técnico y de informe entregado por el estudiante."
@@ -5052,21 +4882,15 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/docente/aulas/:aulaId/cerrar-practica",
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/cerrar-practica",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "docente",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "cerrar-practica"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId",
-                      "value": "{{aulaId}}"
-                    }
                   ]
                 },
                 "description": "Emite el dictamen del docente tutor (Aprobado para cerrar la práctica, o No Aprobado para devolver con observaciones al estudiante)."
@@ -5103,21 +4927,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/docente/aulas/:aulaId/cerrar-practica",
+                      "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/cerrar-practica",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "docente",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "cerrar-practica"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Emite la calificacion sobre 20 puntos, dictamen definitivo (Aprobado/No Aprobado), cierra el aula virtual y genera el Acta FCP-004."
@@ -5169,21 +4987,15 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseUrl}}/docente/aulas/:aulaId/cerrar-practica",
+                      "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/cerrar-practica",
                       "host": [
                         "{{baseUrl}}"
                       ],
                       "path": [
                         "docente",
                         "aulas",
-                        ":aulaId",
+                        "{{aulaId}}",
                         "cerrar-practica"
-                      ],
-                      "variable": [
-                        {
-                          "key": "aulaId",
-                          "value": "6af25860acffafee3a663cfe"
-                        }
                       ]
                     },
                     "description": "Emite la calificacion sobre 20 puntos, dictamen definitivo (Aprobado/No Aprobado), cierra el aula virtual y genera el Acta FCP-004."
@@ -5226,20 +5038,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/docente/aulas/:aulaId/descargar-informe",
+                  "raw": "{{baseUrl}}/docente/aulas/{{aulaId}}/descargar-informe",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "docente",
                     "aulas",
-                    ":aulaId",
+                    "{{aulaId}}",
                     "descargar-informe"
-                  ],
-                  "variable": [
-                    {
-                      "key": "aulaId"
-                    }
                   ]
                 },
                 "description": "Permite al docente tutor descargar el archivo Excel oficial (F_AA_119 o FCP_001A) completado por el estudiante para su auditoria y evaluacion final."
