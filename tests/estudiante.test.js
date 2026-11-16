@@ -9,6 +9,7 @@ import { ActividadLaboral } from '../src/infrastructure/database/models/Activida
 import { ActividadComunitaria } from '../src/infrastructure/database/models/ActividadComunitaria.js';
 import { ConvalidacionCertificado } from '../src/infrastructure/database/models/ConvalidacionCertificado.js';
 import { FormularioPendiente } from '../src/infrastructure/database/models/FormularioPendiente.js';
+import { FuenteInstitucional } from '../src/infrastructure/database/models/FuenteInstitucional.js';
 
 describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
   afterEach(() => {
@@ -487,9 +488,22 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
         _id: 'aula1',
         estudiante: 'est1',
+        carrera: 'Desarrollo de Software',
         horasRequeridas: 80,
         modalidad: 'laboral'
       });
+      jest.spyOn(FuenteInstitucional, 'find').mockResolvedValue([
+        {
+          titulo: 'Malla Curricular: Tecnología Superior en Desarrollo de Software (Pénsum 2020)',
+          activo: true,
+          fragmentos: [
+            {
+              texto:
+                '* **Programación** | Código: `TDSD214` | Créditos: 4\n* **Bases de Datos** | Código: `TDSD224` | Créditos: 4'
+            }
+          ]
+        }
+      ]);
       const mockForm = {
         entidadReceptora: entidadCompleta,
         creditosAprobados: 90,

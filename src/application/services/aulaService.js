@@ -9,7 +9,7 @@ export const aulaService = {
   // Crea y parametriza un aula virtual garantizando la relacion 1 a 1 entre docente y estudiante
   // Para practicas laborales exige obligatoriamente los PDFs de cartaAceptacion y SolicitudPracticas
   async crearAula(datos, archivos = null) {
-    const { nombre, periodo, modalidad, docenteTutor, estudiante, fechaInicio, fechaFin } = datos;
+    const { nombre, periodo, modalidad, carrera, docenteTutor, estudiante, fechaInicio, fechaFin } = datos;
 
     if (!nombre || !periodo || !modalidad || !docenteTutor || !estudiante) {
       throw errorHttp('Nombre, periodo, modalidad, docente tutor y estudiante son obligatorios', 400);
@@ -128,6 +128,7 @@ export const aulaService = {
       nombre: nombre.trim(),
       periodo: periodo.trim(),
       modalidad,
+      carrera: carrera && String(carrera).trim() ? String(carrera).trim() : 'Desarrollo de Software',
       docenteTutor: tutor._id,
       estudiante: alumno._id,
       horasRequeridas,

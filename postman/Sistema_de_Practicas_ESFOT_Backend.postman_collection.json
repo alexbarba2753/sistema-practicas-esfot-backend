@@ -1791,6 +1791,12 @@
                       "type": "text"
                     },
                     {
+                      "key": "carrera",
+                      "value": "Desarrollo de Software",
+                      "description": "Carrera del estudiante (usada para consultar su malla curricular en RAG)",
+                      "type": "text"
+                    },
+                    {
                       "key": "docenteTutor",
                       "value": "{{docenteId}}",
                       "description": "ID de MongoDB del docente tutor asignado",

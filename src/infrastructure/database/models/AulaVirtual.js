@@ -18,6 +18,11 @@ const aulaVirtualSchema = new mongoose.Schema(
       enum: Object.values(MODALIDADES),
       required: [true, 'La modalidad es obligatoria']
     },
+    carrera: {
+      type: String,
+      trim: true,
+      default: 'Desarrollo de Software'
+    },
     docenteTutor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Usuario',

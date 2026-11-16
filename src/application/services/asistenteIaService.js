@@ -17,6 +17,84 @@ const getGroqClient = () => {
   return groqClient;
 };
 
+const normalizarTexto = (txt = '') =>
+  String(txt)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+async function obtenerContextoMallaCurricular(carrera = '', textoActividades = '') {
+  let fuentes = [];
+  try {
+    fuentes = await FuenteInstitucional.find({ activo: true });
+  } catch {
+    return { contextoMalla: '', materiasSeleccionadas: [] };
+  }
+
+  if (!Array.isArray(fuentes) || fuentes.length === 0) {
+    return { contextoMalla: '', materiasSeleccionadas: [] };
+  }
+
+  const carreraNorm = normalizarTexto(carrera);
+  const palabrasCarrera = carreraNorm.split(/\s+/).filter((w) => w.length >= 4);
+
+  const fuenteMalla =
+    fuentes.find((f) => {
+      const tituloNorm = normalizarTexto(f.titulo);
+      return /malla|pensum|curricular/.test(tituloNorm) &&
+        (palabrasCarrera.length === 0 || palabrasCarrera.some((p) => tituloNorm.includes(p)));
+    }) ||
+    fuentes.find((f) => /malla|pensum|curricular/i.test(f.titulo || ''));
+
+  if (!fuenteMalla || !Array.isArray(fuenteMalla.fragmentos)) {
+    return { contextoMalla: '', materiasSeleccionadas: [] };
+  }
+
+  const fragmentosConMaterias = fuenteMalla.fragmentos
+    .map((fr) => fr.texto || '')
+    .filter((t) => /c[oó]digo:/i.test(t));
+
+  const contextoMalla = fragmentosConMaterias.join('\n').slice(0, 6000);
+
+  // Extraer materias reales desde los fragmentos del RAG para respaldo sin IA externa
+  const materiasExtraidas = [];
+  const regexMateria = /\*\s*\*\*([^*]+)\*\*\s*\|\s*C[oó]digo:\s*`?([A-Z0-9-]+)`?/gi;
+  let match;
+  while ((match = regexMateria.exec(contextoMalla)) !== null) {
+    const nombre = match[1].trim();
+    const codigo = match[2].trim();
+    if (!/f[ií]sica|c[aá]lculo|comunicaci[oó]n|ingl[eé]s|educaci[oó]n/i.test(nombre)) {
+      materiasExtraidas.push({ nombre, codigo });
+    }
+  }
+
+  const actividadesNorm = normalizarTexto(textoActividades);
+  const palabrasAct = actividadesNorm.split(/\s+/).filter((w) => w.length >= 4);
+
+  const puntuadas = materiasExtraidas.map((m) => {
+    const nombreNorm = normalizarTexto(m.nombre);
+    let score = 0;
+    for (const p of palabrasAct) {
+      if (nombreNorm.includes(p)) score += 2;
+    }
+    if (/programaci[oó]n|base|datos|web|software|redes|aplicaciones|dise[nñ]o/i.test(nombreNorm)) {
+      score += 1;
+    }
+    return { ...m, score };
+  });
+
+  puntuadas.sort((a, b) => b.score - a.score);
+  const materiasSeleccionadas = puntuadas
+    .slice(0, 4)
+    .map((m) => `• ${m.nombre} (${m.codigo}): Aplicación práctica de sus fundamentos en el proyecto`);
+
+  return {
+    tituloFuente: fuenteMalla.titulo,
+    contextoMalla,
+    materiasSeleccionadas
+  };
+}
+
 export const asistenteIaService = {
   // Responde preguntas del estudiante sobre reglamentos y normativas institucionales usando RAG
   async consultarNormativa(pregunta) {
@@ -175,6 +253,11 @@ export const asistenteIaService = {
       .join('\n');
 
     if (aula.modalidad === MODALIDADES.LABORAL) {
+      const { contextoMalla, materiasSeleccionadas } = await obtenerContextoMallaCurricular(
+        aula.carrera || 'Desarrollo de Software',
+        descripcionesUnicas.join(' ')
+      );
+
       let generado = null;
       const client = getGroqClient();
 
@@ -187,17 +270,22 @@ export const asistenteIaService = {
               {
                 role: 'system',
                 content:
-                  'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional). Debes devolver EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redacta en español formal académico, sintetizando sin copiar textualmente la bitácora.'
+                  'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional). Debes devolver EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redacta en español formal académico, sintetizando sin copiar textualmente la bitácora y usando únicamente asignaturas reales de la malla provista.'
               },
               {
                 role: 'user',
-                content: `Área asignada: ${er.areaAsignada || 'Desarrollo de Software'}
+                content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
+Área asignada: ${er.areaAsignada || 'Desarrollo de Software'}
 Total de horas cumplidas: ${totalHoras}h
+
+Malla Curricular oficial (Fuente RAG):
+${contextoMalla || 'No disponible'}
+
 Bitácora de actividades registradas por el estudiante:
 ${bitacoraTexto.slice(0, 4000)}
 
 Genera el JSON con estas reglas estrictas:
-1. "asignaturasUtilidad": String con 3 a 5 asignaturas relevantes de la carrera (con código y temática aplicada), UNA POR LÍNEA empezando cada línea con "• " (ejemplo: "• Programación Orientada a Objetos (TDSD214): Estructuras de control y servicios\\n• Bases de Datos (TDSD224): Modelado y persistencia").
+1. "asignaturasUtilidad": Selecciona de la Malla Curricular oficial provista entre 3 y 5 asignaturas que correspondan a las actividades realizadas (con su nombre y código exactos de la malla, más la temática aplicada). Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• ".
 2. "principalesActividades": String con un resumen sintetizado (NO copiado textualmente ni repetido) de las principales actividades desarrolladas, separado en 4 a 6 viñetas, UNA POR LÍNEA empezando cada línea con "• ".
 3. "habilidadesAdquiridas": String con un párrafo técnico amplio (3 a 5 líneas, 50 a 80 palabras) sobre las habilidades, destrezas y conocimientos técnicos y profesionales adquiridos.
 4. "observacionesTemas": String con un párrafo amplio (2 a 4 líneas, 40 a 65 palabras) indicando los temas, herramientas o estándares que no se revisaron a profundidad en clases y que fueron necesarios durante la práctica.`
@@ -212,16 +300,14 @@ Genera el JSON con estas reglas estrictas:
             generado = JSON.parse(rawJson);
           }
         } catch (err) {
-          // Si falla la llamada externa, se usa el sintetizador local de respaldo
+          // Si falla la llamada externa, se usa el sintetizador local basado en RAG
         }
       }
 
-      const asignaturasFallback = [
-        '• Programación Orientada a Objetos (TDSD214): Diseño modular, servicios y lógica de negocio',
-        '• Bases de Datos (TDSD224): Modelado de datos, consultas y persistencia documental',
-        '• Ingeniería de Software (TDSD314): Arquitectura por capas, pruebas unitarias y control de calidad',
-        '• Metodologías Ágiles (TDSD324): Planificación iterativa y gestión colaborativa del proyecto'
-      ].join('\n');
+      const asignaturasFallback =
+        materiasSeleccionadas.length > 0
+          ? materiasSeleccionadas.join('\n')
+          : '• Asignaturas de formación profesional de la malla curricular vigente aplicadas al proyecto.';
 
       const actividadesFallback = descripcionesUnicas
         .slice(0, 6)
