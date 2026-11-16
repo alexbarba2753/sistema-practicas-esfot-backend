@@ -31,12 +31,17 @@ function formatearDatosGeneralesFormulario(formulario, aula) {
   const ci = typeof formulario.contenidoIa?.toObject === 'function'
     ? formulario.contenidoIa.toObject()
     : (formulario.contenidoIa || {});
-  const est = aula?.estudiante && typeof aula.estudiante === 'object' ? aula.estudiante : {};
+  const est =
+    formulario.estudiante && typeof formulario.estudiante === 'object' && formulario.estudiante.nombres
+      ? formulario.estudiante
+      : aula?.estudiante && typeof aula.estudiante === 'object'
+      ? aula.estudiante
+      : {};
   const emp = aula?.datosEmpresa || {};
 
   return {
     _id: formulario._id,
-    aulaVirtual: formulario.aulaVirtual,
+    aulaVirtual: formulario.aulaVirtual?._id || formulario.aulaVirtual,
     modalidad: formulario.modalidad,
     estado: formulario.estado,
     entidadReceptora: {
@@ -521,28 +526,28 @@ export const expedienteService = {
     };
   },
 
-  // Consulta los expedientes remitidos para dictamen de la Comision de Practicas Preprofesionales (CPP)
+  // Consulta los expedientes remitidos para dictamen del Administrador
   async listarExpedientesPendientesComision() {
     const formularios = await FormularioPendiente.find({
       estado: { $in: ['aprobado_docente', 'pendiente_comision'] }
     })
-      .populate('estudiante', 'nombres apellidos cedula correo telefono')
-      .populate({
-        path: 'aulaVirtual',
-        populate: { path: 'docenteTutor', select: 'nombres apellidos cedula correo' }
-      })
+      .populate('estudiante', 'nombres apellidos cedula correo')
+      .populate('aulaVirtual', 'fechaInicio fechaFin horasRequeridas datosEmpresa')
       .sort({ updatedAt: -1 });
 
     return {
       success: true,
       total: formularios.length,
-      expedientes: formularios
+      expedientes: formularios.map((f) => formatearDatosGeneralesFormulario(f, f.aulaVirtual))
     };
   },
 
   // Veredicto final del Administrador: aprobar (mueve a formularios_aprobados y cierra aula) o rechazar (devuelve al docente)
   async dictamenFinalComision(aulaId, adminId, datos = {}) {
-    const aula = await AulaVirtual.findById(aulaId);
+    const queryAula = AulaVirtual.findById(aulaId);
+    const aula = typeof queryAula?.populate === 'function'
+      ? await queryAula.populate('estudiante', 'nombres apellidos cedula correo')
+      : await queryAula;
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
     if (aula.estado === ESTADOS_AULA.CERRADA) {
@@ -609,7 +614,7 @@ export const expedienteService = {
     return {
       success: true,
       message: 'Practica aprobada definitivamente por el administrador y movida a formularios_aprobados.',
-      formularioAprobado,
+      formulario: formatearDatosGeneralesFormulario(formularioAprobado, aula),
       aulaEstado: aula.estado
     };
   },
