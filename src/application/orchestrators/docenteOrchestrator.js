@@ -54,7 +54,7 @@ export const docenteOrchestrator = {
     return await expedienteService.evaluarSeguimientoDocente(aulaId, docenteId, datos);
   },
 
-  // emite la calificacion final sobre 20, aprueba la practica y genera el acta oficial fcp-004
+  // emite el dictamen del docente tutor (Aprobado o No Aprobado con observaciones)
   async cerrarPractica(aulaId, docenteId, datos) {
     return await expedienteService.cerrarProcesoDocente(aulaId, docenteId, datos);
   },

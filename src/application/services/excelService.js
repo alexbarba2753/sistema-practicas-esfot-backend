@@ -190,9 +190,39 @@ export const excelService = {
       c.alignment = { vertical: 'middle', horizontal: 'center' };
     });
 
-    // 6. Seguimiento: llamada telefonica al responsable de la entidad receptora
-    if (entidad.responsable) {
-      worksheet.getCell('A80').value = `Llamada telefónica a ${entidad.responsable}, Supervisor de las Prácticas`;
+    // 6. Seguimiento y evaluacion del tutor academico (adaptado a modalidad virtual y tutor de practicas)
+    const seg = formularioPendiente?.seguimientoTutor || {};
+    worksheet.getCell('F79').value =
+      'El estudiante proporciona detalles sobre las actividades que está llevando a cabo en la empresa mediante reunión virtual';
+    worksheet.getCell('A80').value = 'Llamada telefónica al tutor de prácticas, Supervisor de las Prácticas';
+
+    if (seg.completadoPorTutor) {
+      worksheet.getCell('B74').value = seg.conformidadPlan !== false ? 'X' : '';
+      worksheet.getCell('D74').value = seg.conformidadPlan === false ? 'X' : '';
+      if (seg.observacionesPlan) worksheet.getCell('G74').value = seg.observacionesPlan;
+      if (seg.novedades) worksheet.getCell('A76').value = seg.novedades;
+
+      const actsSeg = Array.isArray(seg.actividadesSeguimiento) ? seg.actividadesSeguimiento : [];
+      [79, 80, 81].forEach((fila, idx) => {
+        if (actsSeg[idx]) {
+          if (actsSeg[idx].actividad) worksheet.getCell(`A${fila}`).value = actsSeg[idx].actividad;
+          if (actsSeg[idx].fecha) {
+            worksheet.getCell(`D${fila}`).value = new Date(actsSeg[idx].fecha).toLocaleDateString('es-EC');
+          }
+          if (actsSeg[idx].resultados) worksheet.getCell(`F${fila}`).value = actsSeg[idx].resultados;
+        }
+      });
+
+      const evalT = seg.evaluacionCualitativaTutor || {};
+      worksheet.getCell('G85').value = evalT.recomiendaEntidad !== false ? 'X' : '';
+      worksheet.getCell('H85').value = evalT.recomiendaEntidad === false ? 'X' : '';
+      worksheet.getCell('G86').value = evalT.aportaPerfilEgreso !== false ? 'X' : '';
+      worksheet.getCell('H86').value = evalT.aportaPerfilEgreso === false ? 'X' : '';
+      worksheet.getCell('G87').value = evalT.recomiendaAprobacion !== false ? 'X' : '';
+      worksheet.getCell('H87').value = evalT.recomiendaAprobacion === false ? 'X' : '';
+      if (seg.observacionesMejora) {
+        worksheet.getCell('A88').value = `Observaciones / acciones de mejora: ${seg.observacionesMejora}`;
+      }
     }
 
     // 8. Firmas de responsabilidad: izquierda Tutor EPN, derecha Entidad Receptora

@@ -4981,7 +4981,7 @@
           "name": "4. Dictamen Final y Acta",
           "item": [
             {
-              "name": "Consultar Datos Generales del Formulario en Revisión",
+              "name": "Consultar Datos Generales del Formulario",
               "id": "0a582007-4e63-4457-969d-6dae237facb1",
               "request": {
                 "auth": {
@@ -5022,7 +5022,7 @@
               "uid": "54606450-0a582007-4e63-4457-969d-6dae237facb1"
             },
             {
-              "name": "Cierre Formal y Emisión de Acta FCP-004",
+              "name": "Dictamen del Docente (Aprobar o Devolver)",
               "id": "840e9517-2348-484b-a240-8111b2323d87",
               "request": {
                 "auth": {
@@ -5044,7 +5044,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"dictamen\": \"Aprobado\",\n  \"calificacion\": 20,\n  \"observacionesFinales\": \"El estudiante ha completado a cabalidad todas las actividades y el informe técnico cumple con los estándares de la ESFOT.\"\n}",
+                  "raw": "{\n  \"dictamen\": \"Aprobado\",\n  \"observaciones\": \"El estudiante ha completado a cabalidad todas las actividades y el informe técnico cumple con los estándares de la ESFOT.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -5065,11 +5065,11 @@
                   "variable": [
                     {
                       "key": "aulaId",
-                      "value": "6af25860acffafee3a663cfe"
+                      "value": "{{aulaId}}"
                     }
                   ]
                 },
-                "description": "Emite la calificacion sobre 20 puntos, dictamen definitivo (Aprobado/No Aprobado), cierra el aula virtual y genera el Acta FCP-004."
+                "description": "Emite el dictamen del docente tutor (Aprobado para cerrar la práctica, o No Aprobado para devolver con observaciones al estudiante)."
               },
               "response": [
                 {
@@ -5210,7 +5210,7 @@
               "uid": "54606450-840e9517-2348-484b-a240-8111b2323d87"
             },
             {
-              "name": "Descargar Informe del Estudiante para Revisión",
+              "name": "Descargar Informe F_AA_119",
               "id": "0fdd14a0-e0eb-4f70-b3ed-dfa186c2fb96",
               "request": {
                 "auth": {
@@ -5250,7 +5250,7 @@
               "uid": "54606450-0fdd14a0-e0eb-4f70-b3ed-dfa186c2fb96"
             },
             {
-              "name": "Evaluar Seguimiento Docente (Punto 6/9)",
+              "name": "Evaluar Seguimiento Docente (Sección 6 F_AA_119)",
               "id": "cad1e853-fe0a-362c-77a7-baf2adaee9fc",
               "request": {
                 "auth": {
@@ -5272,7 +5272,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"conformidadPlan\": true,\n  \"observacionesPlan\": \"Las actividades realizadas se cumplen según lo planificado.\",\n  \"novedades\": \"Las prácticas preprofesionales se llevaron a cabo con normalidad y cumplimiento estricto.\",\n  \"actividadesSeguimiento\": [\n    {\n      \"actividad\": \"Contacto inicial con el estudiante para coordinación de prácticas\",\n      \"fecha\": \"2026-10-15T09:00:00.000Z\",\n      \"resultados\": \"Planificación y alineación de tareas con el perfil de egreso\"\n    },\n    {\n      \"actividad\": \"Supervisión intermedia y revisión de bitácoras laborales\",\n      \"fecha\": \"2026-11-01T14:30:00.000Z\",\n      \"resultados\": \"Avance del 60% de horas aprobado satisfactoriamente\"\n    },\n    {\n      \"actividad\": \"Revisión continua final de evidencias y cierre de informe técnico\",\n      \"fecha\": \"2026-11-12T11:00:00.000Z\",\n      \"resultados\": \"Validación de horas requeridas y visto bueno de informe final\"\n    }\n  ],\n  \"recomiendaEntidad\": true,\n  \"aportaPerfilEgreso\": true,\n  \"recomiendaAprobacion\": true,\n  \"observacionesMejora\": \"Desempeño y aplicación de conocimientos técnicos muy satisfactorios.\"\n}",
+                  "raw": "{\n  \"conformidadPlan\": true,\n  \"observacionesPlan\": \"Las actividades realizadas se cumplen según lo planificado al inicio de la práctica.\",\n  \"novedades\": \"Las prácticas preprofesionales se llevaron a cabo con normalidad.\",\n  \"actividadesSeguimiento\": [\n    {\n      \"actividad\": \"Contacto inicial con el estudiante para obtener información de las prácticas\",\n      \"fecha\": \"2026-04-06T09:00:00.000Z\",\n      \"resultados\": \"El estudiante proporciona detalles sobre las actividades que está llevando a cabo en la empresa mediante reunión virtual\"\n    },\n    {\n      \"actividad\": \"Llamada telefónica al tutor de prácticas, Supervisor de las Prácticas\",\n      \"fecha\": \"2026-05-04T15:00:00.000Z\",\n      \"resultados\": \"Se conoce el desempeño del estudiante en sus responsabilidades asignadas\"\n    },\n    {\n      \"actividad\": \"Revisión de la Documentación\",\n      \"fecha\": \"2026-05-29T11:00:00.000Z\",\n      \"resultados\": \"Se revisa el formulario F_AA_119\"\n    }\n  ],\n  \"recomiendaEntidad\": true,\n  \"aportaPerfilEgreso\": true,\n  \"recomiendaAprobacion\": true,\n  \"observacionesMejora\": \"Las actividades ejecutadas durante las prácticas preprofesionales han brindado una base para consolidar los conocimientos previos y adquirir nuevas habilidades en el área asignada.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"

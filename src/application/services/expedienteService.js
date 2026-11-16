@@ -322,7 +322,7 @@ export const expedienteService = {
     };
   },
 
-  // Cierre formal de la practica, calificacion del tutor y emision del acta FCP-004
+  // Dictamen del docente tutor: aprobar y cerrar el aula o devolver con observaciones al estudiante
   async cerrarProcesoDocente(aulaId, docenteId, datos = {}) {
     const aula = await AulaVirtual.findOne({ _id: aulaId, docenteTutor: docenteId });
     if (!aula) throw errorHttp('Aula virtual no encontrada o no asignada a este docente tutor', 404);
@@ -343,12 +343,32 @@ export const expedienteService = {
       );
     }
 
-    const dictamenFinal = datos.dictamen === 'No Aprobado' ? 'No Aprobado' : 'Aprobado';
-    const estadoFinal = dictamenFinal === 'Aprobado' ? 'aprobado' : 'rechazado';
-    const calificacion = datos.calificacion !== undefined ? Number(datos.calificacion) : 20;
+    const dictamen = datos.dictamen === 'No Aprobado' ? 'No Aprobado' : 'Aprobado';
+    const observaciones = (datos.observaciones ?? datos.observacionesFinales ?? '').trim();
 
-    if (isNaN(calificacion) || calificacion < 0 || calificacion > 20) {
-      throw errorHttp('La calificacion debe ser un valor numerico entre 0 y 20 puntos', 400);
+    let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+
+    if (dictamen === 'No Aprobado') {
+      if (!observaciones) {
+        throw errorHttp('Debe ingresar las observaciones al devolver o rechazar la practica', 400);
+      }
+
+      aula.expedienteEntregado = false;
+      await aula.save();
+
+      if (formulario) {
+        formulario.estado = 'observado';
+        formulario.seguimientoTutor.observacionesMejora = observaciones;
+        await formulario.save();
+      }
+
+      return {
+        success: true,
+        message: 'Expediente devuelto al estudiante con observaciones del docente tutor.',
+        dictamen,
+        observaciones,
+        aulaEstado: aula.estado
+      };
     }
 
     aula.estado = ESTADOS_AULA.CERRADA;
@@ -366,23 +386,22 @@ export const expedienteService = {
       });
     }
 
-    acta.dictamen = dictamenFinal;
-    acta.calificacionTutor = calificacion;
-    acta.observacionesFinales = datos.observacionesFinales ? datos.observacionesFinales.trim() : 'Cumplimiento satisfactorio de las horas reglamentarias.';
-    acta.estado = estadoFinal;
+    acta.dictamen = 'Aprobado';
+    acta.observacionesFinales = observaciones || 'Cumplimiento satisfactorio de las horas y actividades de la practica.';
+    acta.estado = 'aprobado';
     acta.fechaEmision = new Date();
     await acta.save();
 
-    let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
     if (formulario) {
-      formulario.estado = estadoFinal;
+      formulario.estado = 'aprobado';
       await formulario.save();
     }
 
     return {
       success: true,
-      message: `Practica ${dictamenFinal === 'Aprobado' ? 'aprobada' : 'reprobada'} y cerrada formalmente. Acta FCP-004 emitida.`,
-      actaAprobacion: acta,
+      message: 'Practica aprobada y cerrada formalmente por el docente tutor.',
+      dictamen: 'Aprobado',
+      observaciones: acta.observacionesFinales,
       aulaEstado: aula.estado
     };
   },
@@ -415,19 +434,19 @@ export const expedienteService = {
       ? datos.actividadesSeguimiento
       : [
           {
-            actividad: 'Contacto inicial con el estudiante para coordinacion de practicas',
+            actividad: 'Contacto inicial con el estudiante para obtener información de las prácticas',
             fecha: aula.fechaInicio || new Date(),
-            resultados: 'Planificacion y alineacion de tareas con el perfil de egreso'
+            resultados: 'El estudiante proporciona detalles sobre las actividades que está llevando a cabo en la empresa mediante reunión virtual'
           },
           {
-            actividad: 'Llamada telefonica / reunion con el supervisor empresarial',
+            actividad: 'Llamada telefónica al tutor de prácticas, Supervisor de las Prácticas',
             fecha: new Date(),
-            resultados: 'Verificacion satisfactoria del desempeno del practicante en la empresa'
+            resultados: 'Se conoce el desempeño del estudiante en sus responsabilidades asignadas'
           },
           {
-            actividad: 'Revision integral de bitacoras y documentacion de informe F_AA_119',
+            actividad: 'Revisión de la Documentación',
             fecha: new Date(),
-            resultados: 'Validacion de evidencias y horas tecnicas reportadas'
+            resultados: 'Se revisa el formulario F_AA_119'
           }
         ];
 

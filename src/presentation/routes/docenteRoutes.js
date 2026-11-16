@@ -30,7 +30,7 @@ router.get('/aulas/:aulaId/formulario-pendiente', docenteController.obtenerFormu
 router.put('/aulas/:aulaId/evaluar-formulario', docenteController.evaluarSeguimientoDocente);
 router.get('/aulas/:aulaId/descargar-informe', docenteController.descargarInforme);
 
-// 6. Cierre formal, calificacion y emision de acta FCP-004
+// 6. Dictamen del docente tutor (aprobar o devolver con observaciones)
 router.post('/aulas/:aulaId/cerrar-practica', docenteController.cerrarPractica);
 
 export default router;
