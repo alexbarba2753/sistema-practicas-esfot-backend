@@ -13,6 +13,6 @@ export const ENV = {
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@esfot.epn.edu.ec',
   GROQ_API_KEY: process.env.GROQ_API_KEY,
-  GROQ_MODEL: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+  GROQ_MODEL: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173'
 };

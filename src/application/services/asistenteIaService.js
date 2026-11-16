@@ -139,7 +139,7 @@ export const asistenteIaService = {
     if (client && contexto) {
       try {
         const completion = await client.chat.completions.create({
-          model: 'llama-3.1-8b-instant',
+          model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
           messages: [
             {
               role: 'system',
@@ -151,8 +151,11 @@ export const asistenteIaService = {
               content: `Contexto normativo institucional:\n${contexto}\n\nPregunta del estudiante: ${pregunta}`
             }
           ],
-          temperature: 0.2,
-          max_tokens: 600
+          temperature: 0.3,
+          max_completion_tokens: 2048,
+          top_p: 1,
+          reasoning_effort: 'medium',
+          stream: false
         });
 
         return {
@@ -268,7 +271,7 @@ export const asistenteIaService = {
       if (client) {
         try {
           const completion = await client.chat.completions.create({
-            model: 'llama-3.1-8b-instant',
+            model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
             response_format: { type: 'json_object' },
             messages: [
               {
@@ -296,12 +299,16 @@ Genera el JSON con estas reglas estrictas:
               }
             ],
             temperature: 0.3,
-            max_tokens: 900
+            max_completion_tokens: 2048,
+            top_p: 1,
+            reasoning_effort: 'medium',
+            stream: false
           });
 
           const rawJson = completion.choices[0]?.message?.content;
           if (rawJson) {
-            generado = JSON.parse(rawJson);
+            const limpioJson = rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+            generado = JSON.parse(limpioJson);
           }
         } catch (err) {
           // Si falla la llamada externa, se usa el sintetizador local basado en RAG
