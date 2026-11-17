@@ -2,7 +2,11 @@ import { Router } from 'express';
 import { adminController } from '../controllers/adminController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
-import { procesarArchivoNormativo, uploadAulasArchivos } from '../middlewares/uploadMiddleware.js';
+import {
+  procesarArchivoNormativo,
+  uploadAulasArchivos,
+  uploadConvalidacionArchivos
+} from '../middlewares/uploadMiddleware.js';
 import { ROLES } from '../../domain/constants/practicasConstants.js';
 
 const router = Router();
@@ -19,6 +23,7 @@ router.patch('/usuarios/:id/estado', adminController.cambiarEstadoUsuario);
 
 // 2. Parametrizacion y Gestion de Aulas Virtuales
 router.post('/aulas-virtuales/laboral', uploadAulasArchivos, adminController.crearAulaLaboral);
+router.post('/aulas-virtuales/convalidaciones', uploadConvalidacionArchivos, adminController.crearAulaConvalidacion);
 router.post('/aulas-virtuales', uploadAulasArchivos, adminController.crearAula);
 router.get('/aulas-virtuales/pendientes-comision', adminController.listarExpedientesPendientesComision);
 router.post('/aulas-virtuales/:aulaId/dictamen-comision', adminController.dictamenFinalComision);

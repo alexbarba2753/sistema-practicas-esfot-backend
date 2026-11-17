@@ -1,9 +1,32 @@
 import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
+import { AulaConvalidacion } from '../../infrastructure/database/models/AulaConvalidacion.js';
 import { Usuario } from '../../infrastructure/database/models/Usuario.js';
 import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
 import { documentParserService } from './documentParserService.js';
 import { MODALIDADES, ROLES, ESTADOS_AULA, HORAS_REGLAMENTARIAS } from '../../domain/constants/practicasConstants.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
+
+export async function buscarAulaPorIdCualquierTipo(aulaId, { populate = false } = {}) {
+  let queryLab = AulaVirtual.findById(aulaId);
+  if (populate && typeof queryLab?.populate === 'function') {
+    queryLab = queryLab
+      .populate('docenteTutor', 'nombres apellidos cedula correo telefono')
+      .populate('estudiante', 'nombres apellidos cedula correo telefono estado');
+  }
+  const aulaLab = await queryLab;
+  if (aulaLab) return { aula: aulaLab, esConvalidacion: false };
+
+  let queryConv = AulaConvalidacion.findById(aulaId);
+  if (populate && typeof queryConv?.populate === 'function') {
+    queryConv = queryConv
+      .populate('docenteTutor', 'nombres apellidos cedula correo telefono')
+      .populate('estudiante', 'nombres apellidos cedula correo telefono estado');
+  }
+  const aulaConv = await queryConv;
+  if (aulaConv) return { aula: aulaConv, esConvalidacion: true };
+
+  return { aula: null, esConvalidacion: false };
+}
 
 export const aulaService = {
   // Crea y parametriza un aula virtual garantizando la relacion 1 a 1 entre docente y estudiante
@@ -177,6 +200,129 @@ export const aulaService = {
     return await this.obtenerAulaPorId(nuevaAula._id);
   },
 
+  // Crea un aula temporal de convalidacion validando FCP-001A (Excel) + Certificado (PDF)
+  async crearAulaConvalidacion(datos, archivos = null) {
+    const {
+      nombre,
+      periodo,
+      modalidad,
+      carrera,
+      docenteTutor,
+      estudiante
+    } = datos;
+
+    if (!nombre || !periodo || !modalidad || !docenteTutor || !estudiante) {
+      throw errorHttp('Nombre, periodo, modalidad, docente tutor y estudiante son obligatorios', 400);
+    }
+
+    if (!Object.values(MODALIDADES).includes(modalidad)) {
+      throw errorHttp(`Modalidad no valida. Permitidas: ${Object.values(MODALIDADES).join(', ')}`, 400);
+    }
+
+    const tutor = await Usuario.findById(docenteTutor);
+    if (!tutor || tutor.rol !== ROLES.DOCENTE) {
+      throw errorHttp('El docente tutor asignado no existe o no tiene el rol de docente', 400);
+    }
+
+    const alumno = await Usuario.findById(estudiante);
+    if (!alumno || alumno.rol !== ROLES.ESTUDIANTE) {
+      throw errorHttp('El estudiante asignado no existe o no tiene el rol de estudiante', 400);
+    }
+
+    const excelFile = archivos?.formularioFcp001a?.[0] || null;
+    const certificadoFile = archivos?.certificado?.[0] || null;
+
+    const { datosExcel, textoCertificado, certificadoAnalisis } =
+      await documentParserService.validarDocumentosConvalidacion(excelFile, certificadoFile, modalidad, alumno);
+
+    const resumenExtraidoExcel = [
+      `Estudiante: ${datosExcel.estudianteNombre} (${datosExcel.cedula})`,
+      `Institucion: ${datosExcel.razonSocial}`,
+      `Horas solicitadas: ${datosExcel.horasSolicitadas}`,
+      `Resumen: ${datosExcel.resumenActividades}`
+    ].join('\n');
+
+    const nuevaAula = new AulaConvalidacion({
+      nombre: nombre.trim(),
+      periodo: periodo.trim(),
+      modalidad,
+      carrera: carrera && String(carrera).trim() ? String(carrera).trim() : 'Desarrollo de Software',
+      docenteTutor: tutor._id,
+      estudiante: alumno._id,
+      horasRequeridas: datosExcel.horasSolicitadas,
+      fechaInicio: datosExcel.fechaInicio,
+      fechaFin: datosExcel.fechaFin,
+      estado: ESTADOS_AULA.ABIERTA,
+      documentoInicial: {
+        tipo: 'formulario_fcp_001a',
+        nombreArchivo: excelFile.originalname || 'fcp_001a.xlsx',
+        textoExtraido: resumenExtraidoExcel.slice(0, 4000),
+        horasExtraidas: datosExcel.horasSolicitadas
+      },
+      certificadoPdf: {
+        nombreArchivo: certificadoFile.originalname || 'certificado.pdf',
+        textoExtraido: textoCertificado.slice(0, 8000),
+        horasDetectadas: certificadoAnalisis.horasMaximas
+      },
+      datosInstitucion: {
+        razonSocial: datosExcel.razonSocial,
+        ruc: datosExcel.ruc,
+        direccion: datosExcel.direccion,
+        ciudad: datosExcel.ciudad,
+        telefono: datosExcel.telefonoInst,
+        celular: datosExcel.celularInst,
+        correo: datosExcel.correoInst,
+        tipoInstitucion: datosExcel.tipoInstitucion,
+        campoAmplio: datosExcel.campoAmplio,
+        campoEspecifico: datosExcel.campoEspecifico,
+        codigoProyecto: datosExcel.codigoProyecto,
+        nombreProyecto: datosExcel.nombreProyecto
+      },
+      seccion1y2Marcas: datosExcel.seccion1y2Marcas
+    });
+
+    await nuevaAula.save();
+
+    await FormularioPendiente.findOneAndUpdate(
+      { aulaVirtual: nuevaAula._id },
+      {
+        $setOnInsert: {
+          aulaVirtual: nuevaAula._id,
+          estudiante: alumno._id,
+          modalidad,
+          tipoAula: 'convalidacion',
+          totalHoras: datosExcel.horasSolicitadas,
+          documentacionSoporte: datosExcel.documentacionSoporte,
+          seccion1y2Marcas: datosExcel.seccion1y2Marcas,
+          fechaDeclaracion: datosExcel.fechaDeclaracion,
+          entidadReceptora: {
+            razonSocial: datosExcel.razonSocial,
+            ruc: datosExcel.ruc,
+            direccion: datosExcel.direccion,
+            ciudad: datosExcel.ciudad || 'Quito',
+            telefono: datosExcel.telefonoInst,
+            celular: datosExcel.celularInst,
+            correo: datosExcel.correoInst,
+            tipoEntidad: datosExcel.tipoInstitucion || 'Privada',
+            campoAmplio: datosExcel.campoAmplio,
+            campoEspecifico: datosExcel.campoEspecifico,
+            codigoProyecto: datosExcel.codigoProyecto,
+            nombreProyecto: datosExcel.nombreProyecto
+          },
+          contenidoIa: {
+            resumenActividades: datosExcel.resumenActividades,
+            contribucionConocimientos: datosExcel.contribucionConocimientos,
+            resultadosAprendizaje: datosExcel.resultadosAprendizaje,
+            asignaturasMalla: datosExcel.asignaturasMalla
+          }
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    return await this.obtenerAulaPorId(nuevaAula._id);
+  },
+
   async listarAulas(filtros = {}) {
     const query = {};
 
@@ -186,18 +332,45 @@ export const aulaService = {
     if (filtros.docenteTutor) query.docenteTutor = filtros.docenteTutor;
     if (filtros.estudiante) query.estudiante = filtros.estudiante;
 
-    return await AulaVirtual.find(query)
+    if (filtros.tipo === 'convalidacion') {
+      return await AulaConvalidacion.find(query)
+        .populate('docenteTutor', 'nombres apellidos correo telefono')
+        .populate('estudiante', 'nombres apellidos correo cedula telefono estado')
+        .select('-__v')
+        .sort({ createdAt: -1 });
+    }
+
+    const aulasLab = await AulaVirtual.find(query)
       .populate('docenteTutor', 'nombres apellidos correo telefono')
       .populate('estudiante', 'nombres apellidos correo cedula telefono estado')
       .select('-__v')
       .sort({ createdAt: -1 });
+
+    if (filtros.tipo === 'laboral') {
+      return aulasLab;
+    }
+
+    const aulasConv = await AulaConvalidacion.find(query)
+      .populate('docenteTutor', 'nombres apellidos correo telefono')
+      .populate('estudiante', 'nombres apellidos correo cedula telefono estado')
+      .select('-__v')
+      .sort({ createdAt: -1 });
+
+    return [...aulasLab, ...aulasConv].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
   async obtenerAulaPorId(id) {
-    const aula = await AulaVirtual.findById(id)
+    let aula = await AulaVirtual.findById(id)
       .populate('docenteTutor', 'nombres apellidos correo telefono')
       .populate('estudiante', 'nombres apellidos correo cedula telefono estado')
       .select('-__v');
+
+    if (!aula) {
+      aula = await AulaConvalidacion.findById(id)
+        .populate('docenteTutor', 'nombres apellidos correo telefono')
+        .populate('estudiante', 'nombres apellidos correo cedula telefono estado')
+        .select('-__v');
+    }
 
     if (!aula) {
       throw errorHttp('Aula virtual no encontrada', 404);
@@ -206,15 +379,15 @@ export const aulaService = {
   },
 
   async actualizarAula(id, datos) {
-    const aula = await AulaVirtual.findById(id);
+    const { aula } = await buscarAulaPorIdCualquierTipo(id);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
     if (datos.nombre) aula.nombre = datos.nombre.trim();
     if (datos.periodo) aula.periodo = datos.periodo.trim();
     if (datos.fechaFin) {
       const fFin = new Date(datos.fechaFin);
-      if (isNaN(fFin.getTime()) || fFin <= aula.fechaInicio) {
-        throw errorHttp('La fecha limite debe ser valida y posterior al inicio', 400);
+      if (isNaN(fFin.getTime()) || fFin < aula.fechaInicio) {
+        throw errorHttp('La fecha limite debe ser valida y no anterior al inicio', 400);
       }
       aula.fechaFin = fFin;
     }
@@ -236,7 +409,7 @@ export const aulaService = {
       throw errorHttp(`Estado no valido. Permitidos: ${Object.values(ESTADOS_AULA).join(', ')}`, 400);
     }
 
-    const aula = await AulaVirtual.findById(id);
+    const { aula } = await buscarAulaPorIdCualquierTipo(id);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
     aula.estado = nuevoEstado;
@@ -245,7 +418,7 @@ export const aulaService = {
   },
 
   async asignarEstudiante(aulaId, estudianteId) {
-    const aula = await AulaVirtual.findById(aulaId);
+    const { aula, esConvalidacion } = await buscarAulaPorIdCualquierTipo(aulaId);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
     const alumno = await Usuario.findById(estudianteId);
@@ -253,14 +426,16 @@ export const aulaService = {
       throw errorHttp('El usuario no existe o no tiene rol de estudiante', 400);
     }
 
-    const aulaActiva = await AulaVirtual.findOne({
-      estudiante: alumno._id,
-      modalidad: aula.modalidad,
-      estado: ESTADOS_AULA.ABIERTA,
-      _id: { $ne: aula._id }
-    });
-    if (aulaActiva) {
-      throw errorHttp('El estudiante ya esta asignado a otra aula activa en esta misma modalidad', 409);
+    if (!esConvalidacion) {
+      const aulaActiva = await AulaVirtual.findOne({
+        estudiante: alumno._id,
+        modalidad: aula.modalidad,
+        estado: ESTADOS_AULA.ABIERTA,
+        _id: { $ne: aula._id }
+      });
+      if (aulaActiva) {
+        throw errorHttp('El estudiante ya esta asignado a otra aula activa en esta misma modalidad', 409);
+      }
     }
 
     aula.estudiante = alumno._id;
@@ -269,7 +444,7 @@ export const aulaService = {
   },
 
   async desasignarEstudiante(aulaId) {
-    const aula = await AulaVirtual.findById(aulaId);
+    const { aula } = await buscarAulaPorIdCualquierTipo(aulaId);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
     aula.estudiante = null;

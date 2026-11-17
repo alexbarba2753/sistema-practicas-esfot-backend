@@ -335,5 +335,150 @@ export const excelService = {
     guardarCopiaLocal(filename, buffer);
 
     return { buffer, filename };
+  },
+
+  // Genera el archivo Excel FCP_001A desde plantilla limpia para aulas de convalidacion (laboral o comunitaria)
+  async generarExcelInformeConvalidacionFcp001a({ aula, estudiante, docente, formularioPendiente }) {
+    const workbook = new ExcelJS.Workbook();
+    let worksheet;
+
+    if (fs.existsSync(PLANTILLA_COMUNITARIO)) {
+      await workbook.xlsx.readFile(PLANTILLA_COMUNITARIO);
+      worksheet = workbook.getWorksheet('FORMULARIO') || workbook.worksheets[0];
+    } else {
+      worksheet = workbook.addWorksheet('FORMULARIO');
+      worksheet.getCell('A1').value = 'INFORME FCP_001A - CONVALIDACION';
+    }
+
+    const nombreCompletoEstudiante = `${estudiante?.nombres || ''} ${estudiante?.apellidos || ''}`.trim();
+    const nombreCompletoDocente = docente ? `${docente?.nombres || ''} ${docente?.apellidos || ''}`.trim() : '';
+    const entidad = formularioPendiente?.entidadReceptora || {};
+    const contenido = formularioPendiente?.contenidoIa || {};
+
+    // Cabecera: Unidad academica y carrera
+    worksheet.getCell('A4').value = 'ESCUELA DE FORMACIÓN DE TECNÓLOGOS';
+    if (aula?.carrera) {
+      worksheet.getCell('C5').value = aula.carrera;
+    }
+
+    // Secciones 1 y 2: Marcar X en las casillas seleccionadas por el estudiante
+    const marcas = Array.isArray(formularioPendiente?.seccion1y2Marcas) && formularioPendiente.seccion1y2Marcas.length > 0
+      ? formularioPendiente.seccion1y2Marcas
+      : (Array.isArray(aula?.seccion1y2Marcas) && aula.seccion1y2Marcas.length > 0
+          ? aula.seccion1y2Marcas
+          : [aula?.modalidad === 'laboral' ? 'A14' : 'F14']);
+
+    for (const ref of marcas) {
+      const c = worksheet.getCell(ref);
+      c.value = 'X';
+      c.font = { name: 'Tahoma', size: 9, bold: true, color: { argb: 'FF000000' } };
+      c.alignment = { vertical: 'middle', horizontal: 'center' };
+    }
+
+    // Seccion 3: Datos del estudiante
+    worksheet.getCell('C26').value = nombreCompletoEstudiante;
+    worksheet.getCell('C27').value = estudiante?.cedula || '';
+    worksheet.getCell('C28').value = estudiante?.correo || '';
+    worksheet.getCell('H28').value = estudiante?.telefono || '';
+    worksheet.getCell('J28').value = estudiante?.telefono || '';
+
+    // Seccion 4: Documentacion soporte
+    worksheet.getCell('A31').value =
+      formularioPendiente?.documentacionSoporte ||
+      'Se adjunta el certificado de respaldo en formato PDF correspondiente a las actividades declaradas.';
+
+    // Seccion 5: Informacion de la institucion
+    if (entidad.razonSocial) worksheet.getCell('C34').value = entidad.razonSocial;
+    if (entidad.ruc) worksheet.getCell('C35').value = entidad.ruc;
+    if (entidad.direccion) worksheet.getCell('C36').value = entidad.direccion;
+    if (entidad.ciudad) worksheet.getCell('B37').value = entidad.ciudad;
+    if (entidad.telefono) worksheet.getCell('H37').value = entidad.telefono;
+    if (entidad.celular) worksheet.getCell('J37').value = entidad.celular;
+    if (entidad.correo) worksheet.getCell('D38').value = entidad.correo;
+    if (entidad.tipoEntidad) worksheet.getCell('D39').value = entidad.tipoEntidad;
+    if (entidad.campoAmplio) worksheet.getCell('D40').value = entidad.campoAmplio;
+    if (entidad.campoEspecifico) worksheet.getCell('D41').value = entidad.campoEspecifico;
+    if (entidad.codigoProyecto) worksheet.getCell('D42').value = entidad.codigoProyecto;
+    if (entidad.nombreProyecto) worksheet.getCell('H42').value = entidad.nombreProyecto;
+
+    // Seccion 6: Informacion de las actividades realizadas (mejorada por IA / editada)
+    const inyectarCeldaTexto = (ref, fila, texto) => {
+      if (!texto) return;
+      const textoLimpio = limpiarTextoParaExcel(texto);
+      const cell = worksheet.getCell(ref);
+      cell.value = textoLimpio;
+      cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
+      cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      const lineas = Math.max(textoLimpio.split('\n').length, Math.ceil(textoLimpio.length / 105));
+      worksheet.getRow(fila).height = Math.max(40, lineas * 14 + 10);
+    };
+
+    inyectarCeldaTexto('A48', 48, contenido.resumenActividades);
+    inyectarCeldaTexto('A50', 50, contenido.contribucionConocimientos);
+    inyectarCeldaTexto('A52', 52, contenido.resultadosAprendizaje);
+    inyectarCeldaTexto('A54', 54, contenido.asignaturasMalla);
+
+    // Seccion 7: Informacion adicional
+    if (aula?.fechaInicio) {
+      worksheet.getCell('C58').value = new Date(aula.fechaInicio).toLocaleDateString('es-EC');
+    }
+    if (aula?.fechaFin) {
+      worksheet.getCell('H58').value = new Date(aula.fechaFin).toLocaleDateString('es-EC');
+    }
+    const horasFinales = formularioPendiente?.totalHoras || aula?.horasRequeridas || 0;
+    worksheet.getCell('C59').value = horasFinales;
+
+    // Seccion 8: Responsabilidad y consentimiento
+    worksheet.getCell('B63').value = nombreCompletoEstudiante;
+    worksheet.getCell('I63').value = estudiante?.cedula || '';
+    const fechaDecl = formularioPendiente?.fechaDeclaracion || new Date();
+    worksheet.getCell('B65').value = new Date(fechaDecl).toLocaleDateString('es-EC');
+
+    // Seccion 9: Informe del Tutor EPN (cuando ha sido completado por el docente)
+    const seg = formularioPendiente?.seguimientoTutor || {};
+    if (seg.completadoPorTutor) {
+      if (nombreCompletoDocente) worksheet.getCell('B68').value = nombreCompletoDocente;
+      worksheet.getCell('G68').value = seg.unidadAcademica || 'ESFOT';
+
+      const evalT = seg.evaluacionCualitativaTutor || {};
+      const q1 = evalT.recomiendaEntidad !== false;
+      const q2 = evalT.aportaPerfilEgreso !== false;
+      const q3 = evalT.recomiendaAprobacion !== false;
+
+      worksheet.getCell('H69').value = q1 ? 'X' : '';
+      worksheet.getCell('J69').value = q1 ? '' : 'X';
+      worksheet.getCell('H70').value = q2 ? 'X' : '';
+      worksheet.getCell('J70').value = q2 ? '' : 'X';
+      worksheet.getCell('H71').value = q3 ? 'X' : '';
+      worksheet.getCell('J71').value = q3 ? '' : 'X';
+
+      const analisis = seg.observacionesPlan || seg.observacionesMejora || '';
+      if (analisis) {
+        inyectarCeldaTexto('A73', 73, analisis);
+      }
+      worksheet.getCell('E74').value = seg.horasValidadasSugeridas || horasFinales;
+    }
+
+    // Seccion 10: Resolucion de la Comision de Practicas Preprofesionales (CPP)
+    const resCom = formularioPendiente?.resolucionComision || {};
+    if (resCom.avalaAprobacion === true) {
+      if (aula?.modalidad === 'laboral') {
+        worksheet.getCell('C78').value = resCom.horasAprobadasLaborales ?? horasFinales;
+      } else {
+        worksheet.getCell('H78').value = resCom.horasAprobadasComunitarias ?? horasFinales;
+      }
+      if (resCom.observacionesComision) {
+        inyectarCeldaTexto('C79', 79, resCom.observacionesComision);
+      }
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const safeCedula = (estudiante?.cedula || 'ESTUDIANTE').replace(/[^a-zA-Z0-9_-]/g, '');
+    const prefijoMod = aula?.modalidad === 'laboral' ? 'Laboral' : 'Comunitario';
+    const filename = `FCP_001A_Convalidacion_${prefijoMod}_${safeCedula}.xlsx`;
+
+    guardarCopiaLocal(filename, buffer);
+
+    return { buffer, filename };
   }
 };

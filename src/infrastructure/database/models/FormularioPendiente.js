@@ -21,10 +21,23 @@ export function crearDefinicionFormulario() {
       enum: Object.values(MODALIDADES),
       required: true
     },
+    tipoAula: {
+      type: String,
+      enum: ['laboral', 'convalidacion'],
+      default: 'laboral'
+    },
     estado: {
       type: String,
       enum: ['borrador', 'en_revision', 'observado', 'aprobado_docente', 'devuelto_a_tutor', 'pendiente_comision', 'aprobado', 'rechazado'],
       default: 'borrador'
+    },
+    documentacionSoporte: {
+      type: String,
+      default: ''
+    },
+    seccion1y2Marcas: {
+      type: [String],
+      default: []
     },
     entidadReceptora: {
       razonSocial: { type: String, default: '' },
@@ -37,11 +50,19 @@ export function crearDefinicionFormulario() {
       tipoEntidad: { type: String, default: 'Privada' },
       responsable: { type: String, default: '' },
       areaAsignada: { type: String, default: '' },
-      cedulaResponsable: { type: String, default: '' }
+      cedulaResponsable: { type: String, default: '' },
+      campoAmplio: { type: String, default: '' },
+      campoEspecifico: { type: String, default: '' },
+      codigoProyecto: { type: String, default: '' },
+      nombreProyecto: { type: String, default: '' }
     },
     creditosAprobados: {
       type: Number,
       default: 0
+    },
+    fechaDeclaracion: {
+      type: Date,
+      default: null
     },
     horarioSemanal: {
       horaInicio: { type: String, default: '08:00' },
@@ -77,6 +98,7 @@ export function crearDefinicionFormulario() {
         aportaPerfilEgreso: { type: Boolean, default: true },
         recomiendaAprobacion: { type: Boolean, default: true }
       },
+      unidadAcademica: { type: String, default: 'ESFOT' },
       observacionesMejora: { type: String, default: '' },
       horasValidadasSugeridas: { type: Number, default: 0 },
       completadoPorTutor: { type: Boolean, default: false },
@@ -85,6 +107,8 @@ export function crearDefinicionFormulario() {
     // Seccion 7 del F_AA_119 / Seccion 10 del FCP_001A (Dictamen del Administrador)
     resolucionComision: {
       avalaAprobacion: { type: Boolean, default: null },
+      horasAprobadasLaborales: { type: Number, default: null },
+      horasAprobadasComunitarias: { type: Number, default: null },
       observacionesComision: { type: String, default: '' },
       fechaResolucion: { type: Date, default: null },
       revisadoPorAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null }

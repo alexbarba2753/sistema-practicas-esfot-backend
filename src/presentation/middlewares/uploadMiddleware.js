@@ -16,6 +16,12 @@ export const uploadAulasArchivos = uploadDocumento.fields([
   { name: 'SolicitudPracticas', maxCount: 1 }
 ]);
 
+// Middleware para recepcion obligatoria de formulario FCP-001A (Excel) y certificado (PDF) en convalidaciones
+export const uploadConvalidacionArchivos = uploadDocumento.fields([
+  { name: 'formularioFcp001a', maxCount: 1 },
+  { name: 'certificado', maxCount: 1 }
+]);
+
 // Middleware para procesar archivos normativos (markdown) por multipart/form-data o json
 export const procesarArchivoNormativo = async (req, res, next) => {
   try {

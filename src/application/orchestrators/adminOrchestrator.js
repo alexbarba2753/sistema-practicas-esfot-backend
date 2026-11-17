@@ -39,6 +39,11 @@ export const adminOrchestrator = {
     return await aulaService.crearAula({ ...datos, modalidad: 'laboral' }, archivos);
   },
 
+  // crea un aula temporal de convalidacion validando el excel FCP-001A y certificado PDF
+  async crearAulaConvalidacion(datos, archivos = null) {
+    return await aulaService.crearAulaConvalidacion(datos, archivos);
+  },
+
   // lista las aulas virtuales registradas segun el periodo o la modalidad laboral o comunitaria
   async listarAulas(filtros) {
     return await aulaService.listarAulas(filtros);

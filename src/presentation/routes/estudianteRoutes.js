@@ -33,10 +33,11 @@ router.get('/aulas/:aulaId/convalidaciones', estudianteController.listarCertific
 router.put('/aulas/:aulaId/convalidaciones/:certificadoId', estudianteController.actualizarCertificado);
 router.put('/convalidaciones/:certificadoId', estudianteController.actualizarCertificado);
 
-// 6. Formulario FCP-001A y reporte asistido por IA
+// 6. Redaccion del informe de practicas (F_AA_119) y convalidacion (FCP-001A) asistida por IA
 router.get('/aulas/:aulaId/formulario-pendiente', estudianteController.obtenerFormularioPendiente);
 router.put('/aulas/:aulaId/formulario-pendiente', estudianteController.actualizarFormularioPendiente);
 router.post('/aulas/:aulaId/ia/generar-informe', estudianteController.generarBorradorInforme);
+router.post('/aulas/:aulaId/ia/mejorar-formulario', estudianteController.mejorarFormularioConvalidacionIA);
 router.get('/aulas/:aulaId/descargar-informe', estudianteController.descargarInforme);
 
 // 7. Entrega formal del expediente

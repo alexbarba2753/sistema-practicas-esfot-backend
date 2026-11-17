@@ -1,6 +1,7 @@
 import mammoth from 'mammoth';
 import { createRequire } from 'module';
 import ExcelJS from 'exceljs';
+import { createWorker } from 'tesseract.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
 const require = createRequire(import.meta.url);
@@ -58,6 +59,82 @@ function normalizarEmpresa(nombre = '') {
     .replace(/[.,;:'"()]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function obtenerTextoCelda(worksheet, ref) {
+  const cell = worksheet.getCell(ref);
+  if (!cell) return '';
+  const val = cell.value;
+  if (val === null || val === undefined) return '';
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === 'object') {
+    if (Array.isArray(val.richText)) {
+      return val.richText.map((r) => r.text || '').join('').trim();
+    }
+    if (val.result !== undefined && val.result !== null) {
+      return val.result instanceof Date ? val.result.toISOString() : String(val.result).trim();
+    }
+    if (val.text) return String(val.text).trim();
+  }
+  return String(cell.text ?? val).trim();
+}
+
+function parsearFechaCelda(worksheet, ref) {
+  const cell = worksheet.getCell(ref);
+  if (!cell || cell.value === null || cell.value === undefined) return null;
+  const val = cell.value;
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return val;
+  }
+  if (typeof val === 'object' && val.result instanceof Date && !isNaN(val.result.getTime())) {
+    return val.result;
+  }
+  const texto = obtenerTextoCelda(worksheet, ref);
+  if (!texto || /^dd\/mm\/aaaa$/i.test(texto)) return null;
+  const parsed = parsearFechaIndividual(texto);
+  if (parsed) return parsed;
+  const fallback = new Date(texto);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function extraerNumeroHorasTexto(texto = '') {
+  const limpio = String(texto).replace(',', '.');
+  const match = limpio.match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function coincidenNombresPorTokens(nombreA = '', nombreB = '') {
+  const tokensA = normalizarSinTildes(nombreA)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length >= 3);
+  const textoBNorm = normalizarSinTildes(nombreB).replace(/[^a-z0-9\s]/g, ' ');
+  if (tokensA.length === 0 || !textoBNorm.trim()) return false;
+  let coincidencias = 0;
+  for (const token of tokensA) {
+    if (textoBNorm.includes(token)) coincidencias++;
+  }
+  return coincidencias >= Math.min(2, tokensA.length);
+}
+
+async function aplicarOcrPdf(parser, maxPaginas = 4) {
+  const ss = await parser.getScreenshot({ scale: 1.5 });
+  const paginas = (ss?.pages || []).slice(0, maxPaginas);
+  if (paginas.length === 0) return '';
+
+  const worker = await createWorker('spa+eng');
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: '11' });
+    const textos = [];
+    for (const pagina of paginas) {
+      if (!pagina?.data) continue;
+      const res = await worker.recognize(Buffer.from(pagina.data));
+      if (res?.data?.text) textos.push(res.data.text);
+    }
+    return textos.join('\n').trim();
+  } finally {
+    await worker.terminate();
+  }
 }
 
 function parsearFechaIndividual(textoFecha, anioPorDefecto = null) {
@@ -179,7 +256,13 @@ export const documentParserService = {
         const parser = new pdfParseModule.PDFParse({ data: buffer });
         try {
           const data = await parser.getText();
-          return data.text || '';
+          const textoPlano = (data.text || '').replace(/--\s*\d+\s*of\s*\d+\s*--/gi, '').trim();
+          if (textoPlano.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '').length >= 30) {
+            return data.text || '';
+          }
+          // Respaldo OCR automatico para certificados escaneados o exportados como imagen
+          const textoOcr = await aplicarOcrPdf(parser);
+          return textoOcr || data.text || '';
         } finally {
           if (typeof parser.destroy === 'function') {
             await parser.destroy();
@@ -498,27 +581,115 @@ export const documentParserService = {
     };
   },
 
-  // Valida y extrae datos del formulario Excel FCP_001A para convalidación
-  async validarYProcesarExcelFcp001a(buffer) {
+  // Valida y extrae datos del formulario Excel FCP_001A para convalidacion
+  async validarYProcesarExcelFcp001a(buffer, modalidad = null, estudianteDb = null) {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    try {
+      await workbook.xlsx.load(buffer);
+    } catch {
+      throw errorHttp('El archivo Excel FCP-001A no es valido o esta corrupto. Use formato .xlsx o .xlsm', 400);
+    }
 
     const worksheet = workbook.getWorksheet('FORMULARIO') || workbook.worksheets[0];
     if (!worksheet) {
       throw errorHttp('El archivo Excel no contiene una hoja valida para procesar el formulario FCP-001A', 400);
     }
 
-    const razonSocial = (worksheet.getCell('C34').text || worksheet.getCell('C35').text || '').trim();
-    const estudianteNombre = (worksheet.getCell('C26').text || worksheet.getCell('C27').text || '').trim();
-    const cedula = (worksheet.getCell('C27').text || worksheet.getCell('C28').text || '').trim();
-    const correo = (worksheet.getCell('C28').text || '').trim();
-    const horasSolicitadasRaw = worksheet.getCell('C59').value || worksheet.getCell('F74').value;
-    const horasSolicitadas = Number(horasSolicitadasRaw) || 0;
+    const encabezadoCodigo = obtenerTextoCelda(worksheet, 'J1').toUpperCase();
+    const encabezadoTitulo = normalizarSinTildes(obtenerTextoCelda(worksheet, 'A6'));
+    const nombreHoja = (worksheet.name || '').toUpperCase();
+    if (!encabezadoCodigo.includes('FCP_001A') && !encabezadoTitulo.includes('convalidacion') && nombreHoja !== 'FORMULARIO') {
+      throw errorHttp('El archivo Excel subido no corresponde al formato oficial FCP_001A', 400);
+    }
+
+    // Secciones 1 y 2: Casillas marcadas con X acorde a la modalidad
+    const celdasLaboral = ['A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A23'];
+    const celdasComunitario = ['F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20'];
+    const marcasLaboral = celdasLaboral.filter((ref) => obtenerTextoCelda(worksheet, ref).length > 0);
+    const marcasComunitario = celdasComunitario.filter((ref) => obtenerTextoCelda(worksheet, ref).length > 0);
+    const seccion1y2Marcas = [...marcasLaboral, ...marcasComunitario];
+
+    if (modalidad === 'laboral') {
+      if (marcasLaboral.length === 0) {
+        throw errorHttp('En el formulario FCP-001A debe marcar al menos una opcion de convalidacion laboral (Seccion 1 o 2)', 400);
+      }
+      if (marcasComunitario.length > 0) {
+        throw errorHttp('El formulario FCP-001A tiene marcada una opcion de servicio comunitario pero la modalidad del aula es laboral', 400);
+      }
+    } else if (modalidad === 'comunitario') {
+      if (marcasComunitario.length === 0) {
+        throw errorHttp('En el formulario FCP-001A debe marcar al menos una opcion de servicio comunitario (Seccion 1)', 400);
+      }
+      if (marcasLaboral.length > 0) {
+        throw errorHttp('El formulario FCP-001A tiene marcada una opcion laboral pero la modalidad del aula es comunitario', 400);
+      }
+    }
+
+    // Seccion 3: Datos del estudiante
+    const estudianteNombre = obtenerTextoCelda(worksheet, 'C26');
+    const cedula = normalizarCedula(obtenerTextoCelda(worksheet, 'C27'));
+    const correo = obtenerTextoCelda(worksheet, 'C28');
+    const telefonoEstudiante = obtenerTextoCelda(worksheet, 'H28');
+    const celularEstudiante = obtenerTextoCelda(worksheet, 'J28');
+
+    // Seccion 4: Documentacion de soporte adjunta (si viene vacio conserva el texto base)
+    const textoSec4Raw = obtenerTextoCelda(worksheet, 'A31');
+    const documentacionSoporte = textoSec4Raw || 'Listar los documentos que se adjuntan';
+
+    // Seccion 5: Informacion de la institucion (campos con * son obligatorios, aceptando N/A)
+    const razonSocial = obtenerTextoCelda(worksheet, 'C34');
+    const ruc = obtenerTextoCelda(worksheet, 'C35');
+    const direccion = obtenerTextoCelda(worksheet, 'C36');
+    const ciudad = obtenerTextoCelda(worksheet, 'B37') || obtenerTextoCelda(worksheet, 'C37');
+    const telefonoInst = obtenerTextoCelda(worksheet, 'H37');
+    const celularInst = obtenerTextoCelda(worksheet, 'J37');
+    const correoInst = obtenerTextoCelda(worksheet, 'D38') || obtenerTextoCelda(worksheet, 'C38');
+    const tipoInstitucion = obtenerTextoCelda(worksheet, 'D39') || obtenerTextoCelda(worksheet, 'C39');
+    const campoAmplio = obtenerTextoCelda(worksheet, 'D40');
+    const campoEspecifico = obtenerTextoCelda(worksheet, 'D41');
+    const codigoProyecto = obtenerTextoCelda(worksheet, 'D42');
+    const nombreProyecto = obtenerTextoCelda(worksheet, 'H42');
+
+    // Seccion 6: Informacion de las actividades realizadas
+    const resumenActividades = obtenerTextoCelda(worksheet, 'A48');
+    const contribucionConocimientos = obtenerTextoCelda(worksheet, 'A50');
+    const resultadosAprendizaje = obtenerTextoCelda(worksheet, 'A52');
+    const asignaturasMalla = obtenerTextoCelda(worksheet, 'A54');
+
+    // Seccion 7: Informacion adicional
+    const fechaInicio = parsearFechaCelda(worksheet, 'C58');
+    const fechaFin = parsearFechaCelda(worksheet, 'H58');
+    const horasSolicitadasRaw = obtenerTextoCelda(worksheet, 'C59') || obtenerTextoCelda(worksheet, 'F74');
+    const horasSolicitadas = extraerNumeroHorasTexto(horasSolicitadasRaw);
+
+    // Seccion 8: Responsabilidad y consentimiento (obligatoria, del estudiante)
+    const nombreResponsabilidad = obtenerTextoCelda(worksheet, 'B63');
+    const cedulaResponsabilidad = normalizarCedula(obtenerTextoCelda(worksheet, 'I63'));
+    const fechaDeclaracion = parsearFechaCelda(worksheet, 'B65');
 
     const camposFaltantes = [];
-    if (!estudianteNombre) camposFaltantes.push('Nombres del estudiante (Sección 3)');
-    if (!cedula) camposFaltantes.push('Cédula de identidad (Sección 3)');
-    if (!razonSocial) camposFaltantes.push('Institución o Empresa receptora (Sección 5)');
+    if (!estudianteNombre) camposFaltantes.push('Nombres y Apellidos del estudiante (Seccion 3 - C26)');
+    if (!cedula) camposFaltantes.push('Cedula de Identidad (Seccion 3 - C27)');
+    if (!correo) camposFaltantes.push('Correo electronico del estudiante (Seccion 3 - C28)');
+    if (!razonSocial) camposFaltantes.push('Razon Social * (Seccion 5 - C34)');
+    if (!ruc) camposFaltantes.push('RUC * (Seccion 5 - C35)');
+    if (!direccion) camposFaltantes.push('Direccion * (Seccion 5 - C36)');
+    if (!telefonoInst) camposFaltantes.push('Telefono * de la institucion (Seccion 5 - H37)');
+    if (!celularInst) camposFaltantes.push('Celular * de la institucion (Seccion 5 - J37)');
+    if (!resumenActividades) camposFaltantes.push('Resumen de actividades realizadas (Seccion 6 - A48)');
+    if (!contribucionConocimientos) camposFaltantes.push('Contribucion al perfil de egreso (Seccion 6 - A50)');
+    if (!resultadosAprendizaje) camposFaltantes.push('Resultados de aprendizaje (Seccion 6 - A52)');
+    if (!asignaturasMalla) camposFaltantes.push('Asignaturas de la malla curricular (Seccion 6 - A54)');
+    if (!fechaInicio) camposFaltantes.push('Fecha inicio (Seccion 7 - C58)');
+    if (!fechaFin) camposFaltantes.push('Fecha fin (Seccion 7 - H58)');
+    if (!horasSolicitadas || horasSolicitadas <= 0) camposFaltantes.push('Horas solicitadas (Seccion 7 - C59)');
+    if (!nombreResponsabilidad || /colocar nombre/i.test(nombreResponsabilidad)) {
+      camposFaltantes.push('Nombre en declaracion de responsabilidad (Seccion 8 - B63)');
+    }
+    if (!cedulaResponsabilidad || /colocar/i.test(cedulaResponsabilidad)) {
+      camposFaltantes.push('Cedula en declaracion de responsabilidad (Seccion 8 - I63)');
+    }
+    if (!fechaDeclaracion) camposFaltantes.push('Fecha en declaracion de responsabilidad (Seccion 8 - B65)');
 
     if (camposFaltantes.length > 0) {
       throw errorHttp(
@@ -527,13 +698,219 @@ export const documentParserService = {
       );
     }
 
+    if (fechaFin < fechaInicio) {
+      throw errorHttp('En la Seccion 7 del FCP-001A, la fecha fin no puede ser anterior a la fecha inicio', 400);
+    }
+
+    const topeHoras = modalidad === 'laboral' ? 240 : 96;
+    if (modalidad && horasSolicitadas > topeHoras) {
+      throw errorHttp(
+        `Las horas solicitadas (${horasSolicitadas}h) superan el maximo reglamentario de ${topeHoras}h para modalidad ${modalidad}`,
+        400
+      );
+    }
+
+    if (cedula !== cedulaResponsabilidad) {
+      throw errorHttp(
+        `La cedula de la Seccion 3 (${cedula}) no coincide con la de la Seccion 8 (${cedulaResponsabilidad})`,
+        400
+      );
+    }
+
+    if (!coincidenNombresPorTokens(estudianteNombre, nombreResponsabilidad)) {
+      throw errorHttp(
+        `El nombre de la Seccion 3 ("${estudianteNombre}") no coincide con el de la Seccion 8 ("${nombreResponsabilidad}")`,
+        400
+      );
+    }
+
+    if (estudianteDb) {
+      const cedulaDb = normalizarCedula(estudianteDb.cedula || '');
+      if (cedulaDb && cedula !== cedulaDb) {
+        throw errorHttp(
+          `La cedula del formulario FCP-001A (${cedula}) no coincide con la del estudiante seleccionado (${cedulaDb})`,
+          400
+        );
+      }
+      const nombreDb = `${estudianteDb.nombres || ''} ${estudianteDb.apellidos || ''}`.trim();
+      if (nombreDb && !coincidenNombresPorTokens(nombreDb, estudianteNombre)) {
+        throw errorHttp(
+          `El nombre del formulario FCP-001A ("${estudianteNombre}") no coincide con el del estudiante seleccionado ("${nombreDb}")`,
+          400
+        );
+      }
+    }
+
     return {
       success: true,
+      seccion1y2Marcas,
       estudianteNombre,
       cedula,
       correo,
+      telefonoEstudiante,
+      celularEstudiante,
+      documentacionSoporte,
       razonSocial,
-      horasSolicitadas: horasSolicitadas > 0 ? horasSolicitadas : 96
+      ruc,
+      direccion,
+      ciudad,
+      telefonoInst,
+      celularInst,
+      correoInst,
+      tipoInstitucion,
+      campoAmplio,
+      campoEspecifico,
+      codigoProyecto,
+      nombreProyecto,
+      resumenActividades,
+      contribucionConocimientos,
+      resultadosAprendizaje,
+      asignaturasMalla,
+      fechaInicio,
+      fechaFin,
+      horasSolicitadas,
+      fechaDeclaracion
+    };
+  },
+
+  // Extrae datos clave (nombre, horas, modalidad) del certificado PDF de convalidacion
+  analizarCertificadoConvalidacion(textoCertificado = '') {
+    const texto = String(textoCertificado || '');
+    const textoNorm = normalizarSinTildes(texto);
+
+    const horasMatches = [];
+    const regexHoras = /(\d+(?:[.,]\d+)?)\s*(?:horas|hora|hrs|hr)\b/gi;
+    let m;
+    while ((m = regexHoras.exec(texto)) !== null) {
+      const n = Number(m[1].replace(',', '.'));
+      if (!isNaN(n) && n > 0 && n <= 1000) {
+        horasMatches.push(n);
+      }
+    }
+
+    const cedulaMatch = texto.match(/(?:c[eé]dula(?:\s+de\s+(?:ciudadan[ií]a|identidad))?|c\.?i\.?|documento)\s*(?:no\.?|n[°º]|#)?\s*[:.]?\s*(\d{9,10}(?:-\d)?)/i);
+    const cedulaDetectada = cedulaMatch ? normalizarCedula(cedulaMatch[1]) : '';
+
+    const esComunitarioExplicito = /(?:servicio\s+comunitario|actividades?\s+de\s+vinculaci[oó]n|vinculaci[oó]n\s+con\s+la\s+sociedad|juntas?\s+receptoras?\s+del\s+voto|voluntariado\s+comunitario|actividades?\s+solidarias)/i.test(textoNorm);
+    const esCursoPlataforma = /(?:udemy|platzi|coursera|edx|certificado\s+de\s+finalizacion|certificacion\s+de\s+aprobacion|curso\s+de|curso\s+para)/i.test(textoNorm);
+    const esLaboralExplicito = /(?:practicas?\s+(?:pre-?profesionales\s+)?laborales|experiencia\s+profesional)/i.test(textoNorm);
+
+    return {
+      textoNorm,
+      horasDetectadas: horasMatches,
+      horasMaximas: horasMatches.length > 0 ? Math.max(...horasMatches) : null,
+      cedulaDetectada,
+      esComunitarioExplicito,
+      esCursoPlataforma,
+      esLaboralExplicito
+    };
+  },
+
+  // Valida Excel FCP-001A + Certificado PDF de convalidacion y cruza consistencia
+  async validarDocumentosConvalidacion(excelFile, certificadoFile, modalidad, estudianteDb) {
+    if (!excelFile || !excelFile.buffer) {
+      throw errorHttp('El formulario Excel FCP-001A en el campo "formularioFcp001a" es obligatorio', 400);
+    }
+    if (!certificadoFile || !certificadoFile.buffer) {
+      throw errorHttp('El certificado en PDF en el campo "certificado" es obligatorio', 400);
+    }
+
+    const nombreExcel = (excelFile.originalname || '').toLowerCase();
+    const mimeExcel = (excelFile.mimetype || '').toLowerCase();
+    const esExcelValido =
+      nombreExcel.endsWith('.xlsx') ||
+      nombreExcel.endsWith('.xlsm') ||
+      mimeExcel.includes('spreadsheetml') ||
+      mimeExcel.includes('ms-excel.sheet.macroenabled');
+
+    if (!esExcelValido || nombreExcel.endsWith('.xls')) {
+      throw errorHttp('El archivo de "formularioFcp001a" debe ser un Excel valido (.xlsx o .xlsm)', 400);
+    }
+
+    const nombrePdf = (certificadoFile.originalname || '').toLowerCase();
+    const mimePdf = (certificadoFile.mimetype || '').toLowerCase();
+    if (!nombrePdf.endsWith('.pdf') && !mimePdf.includes('pdf')) {
+      throw errorHttp('El archivo de "certificado" debe estar unicamente en formato PDF (.pdf)', 400);
+    }
+
+    // 1. Validar que el formulario FCP-001A tenga todas las secciones del estudiante completas
+    const datosExcel = await this.validarYProcesarExcelFcp001a(excelFile.buffer, modalidad, estudianteDb);
+
+    // 2. Extraer texto del certificado PDF (soporta PDF digital y PDF escaneado via OCR)
+    const textoCertificado = await this.extraerTexto(
+      certificadoFile.buffer,
+      certificadoFile.originalname,
+      'application/pdf'
+    );
+    const cert = this.analizarCertificadoConvalidacion(textoCertificado);
+
+    if (cert.textoNorm.replace(/[^a-z0-9]/g, '').length < 20) {
+      throw errorHttp('No se pudo leer contenido legible del certificado PDF adjunto', 400);
+    }
+
+    // 3. Validar que el nombre del estudiante concuerde con el certificado
+    const nombreReferencia = estudianteDb
+      ? `${estudianteDb.nombres || ''} ${estudianteDb.apellidos || ''}`.trim()
+      : datosExcel.estudianteNombre;
+
+    const coincideNombreCert =
+      coincidenNombresPorTokens(nombreReferencia, textoCertificado) ||
+      coincidenNombresPorTokens(datosExcel.estudianteNombre, textoCertificado);
+
+    if (!coincideNombreCert) {
+      throw errorHttp(
+        `El nombre del estudiante ("${datosExcel.estudianteNombre}") no concuerda con el certificado PDF adjunto`,
+        400
+      );
+    }
+
+    // 4. Si el certificado incluye cedula explicita, validar que concuerde
+    if (cert.cedulaDetectada && cert.cedulaDetectada !== datosExcel.cedula) {
+      throw errorHttp(
+        `La cedula encontrada en el certificado (${cert.cedulaDetectada}) no coincide con la del estudiante (${datosExcel.cedula})`,
+        400
+      );
+    }
+
+    // 5. Validar consistencia de modalidad entre el aula y el certificado
+    if (modalidad === 'laboral' && cert.esComunitarioExplicito) {
+      throw errorHttp(
+        'Inconsistencia de modalidad: el aula es laboral pero el certificado corresponde a servicio comunitario o vinculacion',
+        400
+      );
+    }
+    if (modalidad === 'comunitario' && (cert.esLaboralExplicito || (cert.esCursoPlataforma && !cert.esComunitarioExplicito))) {
+      throw errorHttp(
+        'Inconsistencia de modalidad: el aula es comunitario pero el certificado corresponde a un curso profesional o practica laboral',
+        400
+      );
+    }
+
+    // 6. Validar que las horas del formulario FCP-001A concuerden con las del certificado
+    if (cert.horasDetectadas.length === 0) {
+      throw errorHttp(
+        'No se pudo identificar la cantidad de horas en el certificado PDF adjunto',
+        400
+      );
+    }
+
+    const topeModalidad = modalidad === 'laboral' ? 240 : 96;
+    const coincideHorasExacta = cert.horasDetectadas.some((h) => Math.abs(h - datosExcel.horasSolicitadas) < 0.05);
+    const superaCertificado = datosExcel.horasSolicitadas > (cert.horasMaximas || 0) + 0.05;
+    const casoTopePermitido =
+      datosExcel.horasSolicitadas === topeModalidad && (cert.horasMaximas || 0) >= topeModalidad;
+
+    if (superaCertificado || (!coincideHorasExacta && !casoTopePermitido)) {
+      throw errorHttp(
+        `Inconsistencia de horas: el FCP-001A solicita ${datosExcel.horasSolicitadas}h pero el certificado indica ${cert.horasMaximas}h`,
+        400
+      );
+    }
+
+    return {
+      datosExcel,
+      textoCertificado,
+      certificadoAnalisis: cert
     };
   }
 };

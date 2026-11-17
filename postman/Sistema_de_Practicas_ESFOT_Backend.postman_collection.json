@@ -1190,6 +1190,102 @@
                   "uid": "54606450-e2e1b130-6383-43b0-b8ec-18034c83acdf"
                 },
                 {
+                  "name": "Crear Aula de Convalidaciones (FCP-001A + Certificado PDF)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    var res = pm.response.json();",
+                          "    if (res.datos && res.datos._id) {",
+                          "        pm.collectionVariables.set(\"aulaId\", res.datos._id);",
+                          "        console.log(\"Aula de convalidación guardada en {{aulaId}}:\", res.datos._id);",
+                          "    }",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "id": "a1c9f01a-7e3b-4a51-9b81-22c8100f001a",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "nombre",
+                          "value": "Convalidación Curso Técnico - 2026-B",
+                          "type": "text"
+                        },
+                        {
+                          "key": "periodo",
+                          "value": "2026-B",
+                          "type": "text"
+                        },
+                        {
+                          "key": "modalidad",
+                          "value": "laboral",
+                          "description": "laboral o comunitario",
+                          "type": "text"
+                        },
+                        {
+                          "key": "carrera",
+                          "value": "Desarrollo de Software",
+                          "type": "text"
+                        },
+                        {
+                          "key": "docenteTutor",
+                          "value": "{{docenteId}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "estudiante",
+                          "value": "{{estudianteId}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "formularioFcp001a",
+                          "value": "",
+                          "description": "Excel oficial FCP-001A (.xlsx o .xlsm) con secciones del estudiante completas",
+                          "type": "file"
+                        },
+                        {
+                          "key": "certificado",
+                          "value": "",
+                          "description": "Certificado de respaldo en formato PDF (.pdf)",
+                          "type": "file"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admin/aulas-virtuales/convalidaciones",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "aulas-virtuales",
+                        "convalidaciones"
+                      ]
+                    },
+                    "description": "Crea un aula temporal de convalidaciones validando las secciones del estudiante en FCP-001A (.xlsx/.xlsm) y su consistencia con el certificado PDF (con OCR automático si es escaneado)."
+                  },
+                  "response": []
+                },
+                {
                   "name": "Obtener Aula Virtual por ID",
                   "id": "3a88fb4a-c806-440b-8310-f48a08a3853d",
                   "request": {
@@ -4270,6 +4366,39 @@
               "uid": "54606450-6da92c82-74da-44e5-8b3e-53be09676aba"
             },
             {
+              "name": "Mejorar Formulario Convalidación con IA (Sección 6)",
+              "id": "b728e411-94aa-4d2c-91fa-11e8f001a901",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/estudiante/aulas/{{aulaId}}/ia/mejorar-formulario",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "estudiante",
+                    "aulas",
+                    "{{aulaId}}",
+                    "ia",
+                    "mejorar-formulario"
+                  ]
+                },
+                "description": "Lee los campos de la Sección 6 del FCP-001A y el texto extraído del certificado PDF para mejorar y ampliar académicamente la redacción usando IA."
+              },
+              "response": []
+            },
+            {
               "name": "Entregar Expediente al Docente",
               "id": "c21bc53c-ea75-42aa-a1e1-813e540ad89b",
               "request": {
@@ -5139,7 +5268,7 @@
                     "evaluar-formulario"
                   ]
                 },
-                "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe comunitario FCP_001A), validando el cronograma de seguimiento continuo y las preguntas cualitativas institucionales SI/NO. Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante para correcciones (desbloqueando el aula)."
+                "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe de convalidación FCP_001A). Para convalidaciones FCP_001A acepta también: unidadAcademica, contribuyoConocimientos (boolean), contribuyoResultadosAprendizaje (boolean), validoActividades (boolean), analisisRecomendaciones (string) y horasValidadasSugeridas (number). Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante."
               },
               "response": [
                 {
@@ -5184,7 +5313,7 @@
                         "evaluar-formulario"
                       ]
                     },
-                    "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe comunitario FCP_001A), validando el cronograma de seguimiento continuo y las preguntas cualitativas institucionales SI/NO. Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante para correcciones (desbloqueando el aula)."
+                    "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe de convalidación FCP_001A). Para convalidaciones FCP_001A acepta también: unidadAcademica, contribuyoConocimientos (boolean), contribuyoResultadosAprendizaje (boolean), validoActividades (boolean), analisisRecomendaciones (string) y horasValidadasSugeridas (number). Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante."
                   },
                   "status": "OK",
                   "code": 200,
@@ -5244,7 +5373,7 @@
                         "evaluar-formulario"
                       ]
                     },
-                    "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe comunitario FCP_001A), validando el cronograma de seguimiento continuo y las preguntas cualitativas institucionales SI/NO. Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante para correcciones (desbloqueando el aula)."
+                    "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe de convalidación FCP_001A). Para convalidaciones FCP_001A acepta también: unidadAcademica, contribuyoConocimientos (boolean), contribuyoResultadosAprendizaje (boolean), validoActividades (boolean), analisisRecomendaciones (string) y horasValidadasSugeridas (number). Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante."
                   },
                   "status": "OK",
                   "code": 200,
@@ -5304,7 +5433,7 @@
                         "evaluar-formulario"
                       ]
                     },
-                    "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe comunitario FCP_001A), validando el cronograma de seguimiento continuo y las preguntas cualitativas institucionales SI/NO. Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante para correcciones (desbloqueando el aula)."
+                    "description": "Registra la evaluación de seguimiento del tutor académico (Punto 6 en informe laboral F_AA_119 / Punto 9 en informe de convalidación FCP_001A). Para convalidaciones FCP_001A acepta también: unidadAcademica, contribuyoConocimientos (boolean), contribuyoResultadosAprendizaje (boolean), validoActividades (boolean), analisisRecomendaciones (string) y horasValidadasSugeridas (number). Permite remitir el expediente a la Comisión de Prácticas (CPP) o devolverlo observado al estudiante."
                   },
                   "status": "Not Found",
                   "code": 404,

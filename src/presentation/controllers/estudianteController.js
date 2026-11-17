@@ -144,6 +144,16 @@ export const estudianteController = {
     }
   },
 
+  async mejorarFormularioConvalidacionIA(req, res, next) {
+    try {
+      const { aulaId } = req.params;
+      const resultado = await estudianteOrchestrator.mejorarFormularioConvalidacionIA(aulaId, req.usuario.id);
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async entregarExpediente(req, res, next) {
     try {
       const { aulaId } = req.params;

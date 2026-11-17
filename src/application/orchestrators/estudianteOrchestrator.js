@@ -84,6 +84,11 @@ export const estudianteOrchestrator = {
     return await asistenteIaService.generarBorradorInforme(aulaId, estudianteId);
   },
 
+  // mejora con IA los campos de la seccion 6 del formulario FCP-001A de convalidacion usando el certificado PDF
+  async mejorarFormularioConvalidacionIA(aulaId, estudianteId) {
+    return await asistenteIaService.mejorarFormularioConvalidacionIA(aulaId, estudianteId);
+  },
+
   // hace la entrega formal del expediente al docente tutor una vez cumplidas las horas
   async entregarExpediente(aulaId, estudianteId) {
     return await expedienteService.entregarExpediente(aulaId, estudianteId);

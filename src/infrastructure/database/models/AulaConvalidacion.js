@@ -61,6 +61,39 @@ const aulaConvalidacionSchema = new mongoose.Schema(
     fechaEntregaExpediente: {
       type: Date,
       default: null
+    },
+    documentoInicial: {
+      tipo: {
+        type: String,
+        enum: ['formulario_fcp_001a', 'manual'],
+        default: 'formulario_fcp_001a'
+      },
+      nombreArchivo: { type: String, default: '' },
+      textoExtraido: { type: String, default: '' },
+      horasExtraidas: { type: Number, default: null }
+    },
+    certificadoPdf: {
+      nombreArchivo: { type: String, default: '' },
+      textoExtraido: { type: String, default: '' },
+      horasDetectadas: { type: Number, default: null }
+    },
+    datosInstitucion: {
+      razonSocial: { type: String, default: '' },
+      ruc: { type: String, default: '' },
+      direccion: { type: String, default: '' },
+      ciudad: { type: String, default: '' },
+      telefono: { type: String, default: '' },
+      celular: { type: String, default: '' },
+      correo: { type: String, default: '' },
+      tipoInstitucion: { type: String, default: '' },
+      campoAmplio: { type: String, default: '' },
+      campoEspecifico: { type: String, default: '' },
+      codigoProyecto: { type: String, default: '' },
+      nombreProyecto: { type: String, default: '' }
+    },
+    seccion1y2Marcas: {
+      type: [String],
+      default: []
     }
   },
   {

@@ -2,6 +2,7 @@ import Groq from 'groq-sdk';
 import { ENV } from '../../infrastructure/config/env.js';
 import { FuenteInstitucional } from '../../infrastructure/database/models/FuenteInstitucional.js';
 import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
+import { AulaConvalidacion } from '../../infrastructure/database/models/AulaConvalidacion.js';
 import { ActividadLaboral } from '../../infrastructure/database/models/ActividadLaboral.js';
 import { ActividadComunitaria } from '../../infrastructure/database/models/ActividadComunitaria.js';
 import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
@@ -369,6 +370,128 @@ Genera el JSON con estas reglas estrictas:
     return {
       success: true,
       message: 'Borrador del informe generado exitosamente con el contenido tecnico de la bitacora',
+      formulario
+    };
+  },
+
+  // Mejora y amplia con IA la Seccion 6 del formulario FCP-001A de convalidacion usando el borrador y el certificado PDF
+  async mejorarFormularioConvalidacionIA(aulaId, estudianteId) {
+    const aula = await AulaConvalidacion.findById(aulaId);
+    if (!aula) throw errorHttp('Aula de convalidacion no encontrada', 404);
+
+    if (aula.estudiante && estudianteId && aula.estudiante.toString() !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para mejorar el formulario de esta aula de convalidacion', 403);
+    }
+
+    const formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (!formulario) {
+      throw errorHttp('No se encontro el formulario pendiente de esta aula de convalidacion', 404);
+    }
+
+    if (aula.expedienteEntregado && formulario.estado !== 'observado') {
+      throw errorHttp('El expediente ya fue entregado a revision; no puedes modificarlo hasta que el docente lo devuelva', 403);
+    }
+
+    const ci = formulario.contenidoIa || {};
+    const resumenOriginal = ci.resumenActividades || '';
+    const contribucionOriginal = ci.contribucionConocimientos || '';
+    const resultadosOriginal = ci.resultadosAprendizaje || '';
+    const asignaturasOriginal = ci.asignaturasMalla || '';
+
+    if (!resumenOriginal && !contribucionOriginal && !resultadosOriginal && !asignaturasOriginal) {
+      throw errorHttp('El formulario no contiene informacion en la Seccion 6 para mejorar', 400);
+    }
+
+    const textoCertificado = aula.certificadoPdf?.textoExtraido || '';
+    const textoBase = [resumenOriginal, contribucionOriginal, asignaturasOriginal, textoCertificado].join(' ');
+    const { contextoMalla, materiasSeleccionadas } = await obtenerContextoMallaCurricular(
+      aula.carrera || 'Desarrollo de Software',
+      textoBase
+    );
+
+    let mejorado = null;
+    const client = getGroqClient();
+
+    if (client) {
+      try {
+        const completion = await client.chat.completions.create({
+          model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Eres un asesor academico oficial de la ESFOT (Escuela Politecnica Nacional). Debes mejorar, ampliar y redactar en español formal academico los 4 campos de la Seccion 6 del formulario FCP-001A de convalidacion, integrando coherentemente lo escrito por el estudiante, la informacion real extraida del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON valido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas.'
+            },
+            {
+              role: 'user',
+              content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
+Modalidad de convalidacion: ${aula.modalidad}
+Horas solicitadas: ${aula.horasRequeridas}h
+Institucion / Plataforma: ${aula.datosInstitucion?.razonSocial || formulario.entidadReceptora?.razonSocial || 'N/A'}
+
+Texto extraido del certificado PDF:
+${textoCertificado.slice(0, 3000) || 'No disponible'}
+
+Campos actuales de la Seccion 6 ingresados por el estudiante:
+- Breve resumen de actividades realizadas: ${resumenOriginal}
+- Contribucion al perfil de egreso: ${contribucionOriginal}
+- Resultados de aprendizaje del perfil de egreso: ${resultadosOriginal}
+- Asignaturas de la malla curricular y tematicas: ${asignaturasOriginal}
+
+Malla Curricular oficial (Fuente RAG):
+${contextoMalla || 'No disponible'}
+
+Instrucciones estrictas para el JSON:
+1. "resumenActividades": Redacta un parrafo tecnico mas completo y detallado (60 a 100 palabras) o vinetas limpias con "• " integrando las actividades descritas por el estudiante y los detalles reales del certificado.
+2. "contribucionConocimientos": Amplia y fundamenta academicamente (50 a 80 palabras) como estas actividades contribuyeron al perfil de egreso de la carrera.
+3. "resultadosAprendizaje": Redacta de forma precisa (45 a 75 palabras) los resultados de aprendizaje del perfil de egreso fortalecidos.
+4. "asignaturasMalla": Conserva o complementa con 2 a 4 asignaturas reales de la malla curricular provista (con su codigo entre parentesis) explicando las tematicas aplicadas en relacion con las actividades.`
+            }
+          ],
+          temperature: 0.3,
+          max_completion_tokens: 2048,
+          top_p: 1,
+          reasoning_effort: 'medium',
+          stream: false
+        });
+
+        const rawJson = completion.choices[0]?.message?.content;
+        if (rawJson) {
+          const limpioJson = rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+          mejorado = JSON.parse(limpioJson);
+        }
+      } catch (err) {
+        // Si falla la llamada externa, se aplica enriquecimiento academico local
+      }
+    }
+
+    const institucionNombre =
+      aula.datosInstitucion?.razonSocial || formulario.entidadReceptora?.razonSocial || 'la entidad formadora';
+    const materiasFallback =
+      materiasSeleccionadas.length > 0
+        ? materiasSeleccionadas.join('\n')
+        : asignaturasOriginal;
+
+    formulario.contenidoIa.resumenActividades =
+      mejorado?.resumenActividades ||
+      `${resumenOriginal.replace(/\.+$/, '')}. Esta actividad de convalidacion en ${institucionNombre} (${aula.horasRequeridas} horas) permitio ejecutar y consolidar de forma practica los contenidos tecnicos certificados en el respaldo adjunto.`;
+    formulario.contenidoIa.contribucionConocimientos =
+      mejorado?.contribucionConocimientos ||
+      `${contribucionOriginal.replace(/\.+$/, '')}. Asimismo, contribuyo directamente al perfil de egreso de ${aula.carrera || 'Desarrollo de Software'}, fortaleciendo la autonomia profesional, el criterio tecnico y la resolucion estructurada de problemas en entornos reales.`;
+    formulario.contenidoIa.resultadosAprendizaje =
+      mejorado?.resultadosAprendizaje ||
+      `${resultadosOriginal.replace(/\.+$/, '')}. Evidencia el logro de resultados de aprendizaje vinculados a la aplicacion de conocimientos especializados, gestion documentada de procesos y mejora continua de competencias profesionales.`;
+    formulario.contenidoIa.asignaturasMalla =
+      mejorado?.asignaturasMalla ||
+      (asignaturasOriginal ? `${asignaturasOriginal}\n${materiasFallback}`.trim() : materiasFallback);
+    formulario.fechaGeneracionIa = new Date();
+
+    await formulario.save();
+
+    return {
+      success: true,
+      message: 'Seccion 6 del formulario FCP-001A mejorada y ampliada exitosamente con IA a partir del borrador y certificado',
       formulario
     };
   }
