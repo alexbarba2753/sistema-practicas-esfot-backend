@@ -63,6 +63,18 @@ function guardarCopiaLocal(filename, buffer) {
   }
 }
 
+function normalizarTablasWorkbook(workbook) {
+  // ExcelJS interpreta las tablas de la plantilla sin headerRowCount como headerRow=false y genera XML inválido con autoFilter
+  for (const ws of workbook.worksheets) {
+    const tables = ws.getTables ? ws.getTables() : Object.values(ws.tables || {});
+    for (const tableWrapper of tables) {
+      if (tableWrapper?.table && tableWrapper.table.headerRow === false) {
+        tableWrapper.table.headerRow = true;
+      }
+    }
+  }
+}
+
 export const excelService = {
   // Genera el archivo Excel F_AA_119 para practicas empresariales y laborales
   async generarExcelInformeLaboral({ aula, estudiante, docente, formularioPendiente }) {
@@ -289,6 +301,7 @@ export const excelService = {
     worksheet.getCell('G103').value = entidad.responsable || '';
     worksheet.getCell('G104').value = entidad.cedulaResponsable || '';
 
+    normalizarTablasWorkbook(workbook);
     const buffer = await workbook.xlsx.writeBuffer();
     const safeCedula = (estudiante?.cedula || 'ESTUDIANTE').replace(/[^a-zA-Z0-9_-]/g, '');
     const filename = `F_AA_119_Informe_Practicas_Laborales_${safeCedula}.xlsx`;
@@ -386,6 +399,7 @@ export const excelService = {
     worksheet.getCell('H71').value = 'X';
     worksheet.getCell('F74').value = formularioPendiente?.totalHoras || aula?.horasRequeridas || 96;
 
+    normalizarTablasWorkbook(workbook);
     const buffer = await workbook.xlsx.writeBuffer();
     const safeCedula = (estudiante?.cedula || 'ESTUDIANTE').replace(/[^a-zA-Z0-9_-]/g, '');
     const filename = `FCP_001A_Informe_Convalidacion_Comunitario_${safeCedula}.xlsx`;
@@ -530,6 +544,7 @@ export const excelService = {
       }
     }
 
+    normalizarTablasWorkbook(workbook);
     const buffer = await workbook.xlsx.writeBuffer();
     const safeCedula = (estudiante?.cedula || 'ESTUDIANTE').replace(/[^a-zA-Z0-9_-]/g, '');
     const prefijoMod = aula?.modalidad === 'laboral' ? 'Laboral' : 'Comunitario';
