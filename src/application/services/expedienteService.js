@@ -720,6 +720,21 @@ export const expedienteService = {
       throw errorHttp('No se encontro el formulario pendiente del aula', 404);
     }
 
+    if (formulario.estado === 'aprobado_docente' || formulario.estado === 'aprobado') {
+      throw errorHttp(
+        'Este expediente ya fue aprobado por el docente tutor y está bloqueado en espera del veredicto final del administrador.',
+        400
+      );
+    }
+
+    if (!formulario.seguimientoTutor?.completadoPorTutor) {
+      const seccionMsg = esConvalidacion ? 'la Seccion 9' : 'la Seccion 6';
+      throw errorHttp(
+        `Debe completar primero ${seccionMsg} (evaluar-formulario) antes de emitir el dictamen del docente`,
+        400
+      );
+    }
+
     if (dictamen === 'No Aprobado') {
       if (!observaciones) {
         throw errorHttp('Debe ingresar las observaciones al devolver o rechazar la practica', 400);
@@ -740,13 +755,6 @@ export const expedienteService = {
         formularioEstado: formulario.estado,
         aulaEstado: aula.estado
       };
-    }
-
-    if (esConvalidacion && !formulario.seguimientoTutor?.completadoPorTutor) {
-      throw errorHttp(
-        'Debe completar primero la Seccion 9 (evaluar-formulario) antes de aprobar el expediente de convalidacion',
-        400
-      );
     }
 
     // Aprobado por el docente: permanece en formularios_pendientes hasta el veredicto final del administrador
@@ -774,6 +782,13 @@ export const expedienteService = {
 
     let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
     if (!formulario) throw errorHttp('No se encontro el formulario pendiente del aula', 404);
+
+    if (aula.estado === ESTADOS_AULA.CERRADA || formulario.estado === 'aprobado_docente' || formulario.estado === 'aprobado') {
+      throw errorHttp(
+        'Este expediente ya fue aprobado por el docente tutor y está bloqueado hasta el veredicto final del administrador.',
+        400
+      );
+    }
 
     // Si el tutor encuentra errores y devuelve al estudiante
     if (datos.estado === 'observado' || datos.devolverAEstudiante === true) {

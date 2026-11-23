@@ -262,5 +262,60 @@ describe('Pruebas del modulo Docente Tutor (docenteOrchestrator)', () => {
       expect(mockAula.save).toHaveBeenCalledTimes(1);
       expect(mockFormulario.estado).toBe('observado');
     });
+
+    it('debe rechazar el dictamen del docente si aun no completa la Seccion 6', async () => {
+      jest.spyOn(AulaVirtual, 'findOne').mockResolvedValue({
+        _id: 'aula201',
+        docenteTutor: 'docente123',
+        estado: 'activa',
+        expedienteEntregado: true,
+        horasRequeridas: 240
+      });
+      jest.spyOn(actividadService, 'calcularHorasAula').mockResolvedValue({
+        horasAprobadas: 240
+      });
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        _id: 'form201',
+        aulaVirtual: 'aula201',
+        estado: 'en_revision',
+        seguimientoTutor: { completadoPorTutor: false }
+      });
+
+      await expect(
+        docenteOrchestrator.cerrarPractica('aula201', 'docente123', { dictamen: 'Aprobado' })
+      ).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('debe bloquear edicion de Seccion 6 y nuevo dictamen una vez aprobado por el docente', async () => {
+      jest.spyOn(AulaVirtual, 'findOne').mockResolvedValue({
+        _id: 'aula201',
+        docenteTutor: 'docente123',
+        estado: 'activa',
+        expedienteEntregado: true,
+        horasRequeridas: 240
+      });
+      jest.spyOn(actividadService, 'calcularHorasAula').mockResolvedValue({
+        horasAprobadas: 240
+      });
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        _id: 'form201',
+        aulaVirtual: 'aula201',
+        estado: 'aprobado_docente',
+        seguimientoTutor: { completadoPorTutor: true }
+      });
+
+      await expect(
+        docenteOrchestrator.evaluarSeguimientoDocente('aula201', 'docente123', {
+          observacionesPlan: 'Intento de edicion posterior'
+        })
+      ).rejects.toMatchObject({ statusCode: 400 });
+
+      await expect(
+        docenteOrchestrator.cerrarPractica('aula201', 'docente123', {
+          dictamen: 'No Aprobado',
+          observaciones: 'Intento de cambio de dictamen'
+        })
+      ).rejects.toMatchObject({ statusCode: 400 });
+    });
   });
 });
