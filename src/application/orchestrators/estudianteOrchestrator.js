@@ -1,6 +1,5 @@
 import { expedienteService } from '../services/expedienteService.js';
 import { actividadService } from '../services/actividadService.js';
-import { convalidacionService } from '../services/convalidacionService.js';
 import { asistenteIaService } from '../services/asistenteIaService.js';
 
 // orquestador para coordinar las operaciones que realiza el estudiante practicante
@@ -49,24 +48,6 @@ export const estudianteOrchestrator = {
       return await actividadService.actualizarActividadComunitaria(estudianteId, actividadId, datos, aulaId);
     }
     return await actividadService.actualizarActividadComunitaria(estudianteId, actividadId, datos);
-  },
-
-  // sube un certificado de cursos externos para solicitar convalidacion de horas
-  async registrarCertificado(estudianteId, aulaId, datos) {
-    return await convalidacionService.registrarCertificado(estudianteId, aulaId, datos);
-  },
-
-  // lista todos los certificados que el estudiante ha enviado a convalidacion
-  async listarCertificados(aulaId) {
-    return await convalidacionService.listarCertificados(aulaId);
-  },
-
-  // actualiza la informacion de un curso externo o certificado enviado a convalidacion
-  async actualizarCertificado(estudianteId, certificadoId, datos, aulaId) {
-    if (aulaId) {
-      return await convalidacionService.actualizarCertificado(estudianteId, certificadoId, datos, aulaId);
-    }
-    return await convalidacionService.actualizarCertificado(estudianteId, certificadoId, datos);
   },
 
   // consulta los datos que tiene guardados en su formulario de informe fcp-001a

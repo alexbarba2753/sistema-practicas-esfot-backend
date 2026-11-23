@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 import { docenteOrchestrator } from '../src/application/orchestrators/docenteOrchestrator.js';
 import { expedienteService } from '../src/application/services/expedienteService.js';
 import { actividadService } from '../src/application/services/actividadService.js';
-import { convalidacionService } from '../src/application/services/convalidacionService.js';
 import { AulaVirtual } from '../src/infrastructure/database/models/AulaVirtual.js';
 import { FormularioPendiente } from '../src/infrastructure/database/models/FormularioPendiente.js';
 
@@ -97,31 +96,6 @@ describe('Pruebas del modulo Docente Tutor (docenteOrchestrator)', () => {
 
       expect(resultado.success).toBe(true);
       expect(resultado.actividad.estadoAprobacion).toBe('aprobado');
-    });
-  });
-
-  describe('Evaluacion de convalidaciones de cursos externos', () => {
-    it('debe permitir al docente acreditar horas de un curso de Cisco o Udemy', async () => {
-      const mockCertificado = {
-        _id: 'cert01',
-        plataforma: 'Udemy',
-        nombreCurso: 'Fullstack Modern JavaScript',
-        horasCertificadas: 30,
-        horasAcreditadas: 30,
-        estado: 'aprobada'
-      };
-
-      jest.spyOn(convalidacionService, 'evaluarCertificado').mockResolvedValue(mockCertificado);
-
-      const resultado = await docenteOrchestrator.evaluarConvalidacion('cert01', {
-        aprobada: true,
-        horasAcreditadas: 30,
-        observaciones: 'Certificado verificado en plataforma'
-      });
-
-      expect(resultado.estado).toBe('aprobada');
-      expect(resultado.horasAcreditadas).toBe(30);
-      expect(convalidacionService.evaluarCertificado).toHaveBeenCalledTimes(1);
     });
   });
 

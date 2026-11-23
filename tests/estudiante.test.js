@@ -2,12 +2,10 @@ import { jest } from '@jest/globals';
 import { estudianteOrchestrator } from '../src/application/orchestrators/estudianteOrchestrator.js';
 import { expedienteService } from '../src/application/services/expedienteService.js';
 import { actividadService } from '../src/application/services/actividadService.js';
-import { convalidacionService } from '../src/application/services/convalidacionService.js';
 import { asistenteIaService } from '../src/application/services/asistenteIaService.js';
 import { AulaVirtual } from '../src/infrastructure/database/models/AulaVirtual.js';
 import { ActividadLaboral } from '../src/infrastructure/database/models/ActividadLaboral.js';
 import { ActividadComunitaria } from '../src/infrastructure/database/models/ActividadComunitaria.js';
-import { ConvalidacionCertificado } from '../src/infrastructure/database/models/ConvalidacionCertificado.js';
 import { FormularioPendiente } from '../src/infrastructure/database/models/FormularioPendiente.js';
 import { FuenteInstitucional } from '../src/infrastructure/database/models/FuenteInstitucional.js';
 
@@ -137,60 +135,6 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       const resultado = await estudianteOrchestrator.actualizarActividadLaboral('est123', 'act101', { horas: 7 }, 'aulaLaboral101');
       expect(resultado.success).toBe(true);
       expect(actividadService.actualizarActividadLaboral).toHaveBeenCalledWith('est123', 'act101', { horas: 7 }, 'aulaLaboral101');
-    });
-  });
-
-  describe('Convalidacion de certificados de cursos externos', () => {
-    it('debe registrar un certificado de Cisco o Udemy para convalidacion', async () => {
-      const mockCertificado = {
-        success: true,
-        message: 'Certificado de formacion continua registrado para auditoria y convalidacion',
-        certificado: {
-          _id: 'cert01',
-          plataforma: 'Cisco Networking Academy',
-          nombreCurso: 'CCNA: Introduction to Networks',
-          horasCertificadas: 40,
-          estado: 'pendiente'
-        }
-      };
-
-      jest.spyOn(convalidacionService, 'registrarCertificado').mockResolvedValue(mockCertificado);
-
-      const resultado = await estudianteOrchestrator.registrarCertificado('est123', 'aula101', {
-        plataforma: 'Cisco Networking Academy',
-        nombreCurso: 'CCNA: Introduction to Networks',
-        horasCertificadas: 40
-      });
-
-      expect(resultado.success).toBe(true);
-      expect(resultado.certificado.horasCertificadas).toBe(40);
-      expect(convalidacionService.registrarCertificado).toHaveBeenCalledTimes(1);
-    });
-
-    it('debe actualizar un certificado externo pendiente de aprobacion', async () => {
-      const mockActualizado = {
-        success: true,
-        message: 'Certificado actualizado exitosamente y puesto en revision para el docente tutor',
-        certificado: {
-          _id: 'cert01',
-          plataforma: 'Cisco Networking Academy',
-          nombreCurso: 'CCNA: Switching, Routing, and Wireless Essentials',
-          horasCertificadas: 40,
-          estado: 'pendiente'
-        }
-      };
-
-      jest.spyOn(convalidacionService, 'actualizarCertificado').mockResolvedValue(mockActualizado);
-
-      const resultado = await estudianteOrchestrator.actualizarCertificado('est123', 'cert01', {
-        nombreCurso: 'CCNA: Switching, Routing, and Wireless Essentials'
-      });
-
-      expect(resultado.success).toBe(true);
-      expect(resultado.certificado.nombreCurso).toContain('Switching');
-      expect(convalidacionService.actualizarCertificado).toHaveBeenCalledWith('est123', 'cert01', {
-        nombreCurso: 'CCNA: Switching, Routing, and Wireless Essentials'
-      });
     });
   });
 
@@ -324,49 +268,6 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
         estudianteOrchestrator.actualizarActividadComunitaria('est123', 'com101', {
           horas: 5,
           descripcion: 'Intento de modificacion comunitaria con expediente entregado'
-        })
-      ).rejects.toMatchObject({
-        statusCode: 403,
-        message: expect.stringContaining('expediente ya fue entregado')
-      });
-    });
-
-    it('debe rechazar el registro de certificado de convalidacion (registrarCertificado) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
-      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
-        _id: 'aula101',
-        estudiante: 'est123',
-        estado: 'abierta',
-        expedienteEntregado: true
-      });
-
-      await expect(
-        estudianteOrchestrator.registrarCertificado('est123', 'aula101', {
-          plataforma: 'Cisco Networking Academy',
-          nombreCurso: 'CCNA: Enterprise Networking',
-          horasCertificadas: 40
-        })
-      ).rejects.toMatchObject({
-        statusCode: 403,
-        message: expect.stringContaining('expediente ya fue entregado')
-      });
-    });
-
-    it('debe rechazar la actualizacion de certificado de convalidacion (actualizarCertificado) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
-      jest.spyOn(ConvalidacionCertificado, 'findById').mockResolvedValue({
-        _id: 'cert101',
-        estudiante: 'est123',
-        aulaVirtual: 'aula101',
-        estado: 'pendiente'
-      });
-      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
-        _id: 'aula101',
-        estado: 'abierta',
-        expedienteEntregado: true
-      });
-
-      await expect(
-        estudianteOrchestrator.actualizarCertificado('est123', 'cert101', {
-          nombreCurso: 'Curso Modificado'
         })
       ).rejects.toMatchObject({
         statusCode: 403,

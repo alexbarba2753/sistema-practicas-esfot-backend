@@ -95,7 +95,6 @@ async function eliminarDependenciasAula(aulaId) {
   const modelos = [
     'ActividadLaboral',
     'ActividadComunitaria',
-    'ConvalidacionCertificado',
     'FormularioPendiente',
     'FormularioAprobacion'
   ];

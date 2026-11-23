@@ -21,11 +21,7 @@ router.put('/actividades/laborales/:actividadId/evaluar', docenteController.eval
 router.get('/aulas/:aulaId/comunitarias', docenteController.listarActividadesComunitarias);
 router.put('/actividades/comunitarias/:actividadId/evaluar', docenteController.evaluarActividadComunitaria);
 
-// 4. Evaluacion de convalidaciones de cursos externos
-router.get('/aulas/:aulaId/convalidaciones', docenteController.listarConvalidaciones);
-router.put('/convalidaciones/:certificadoId/evaluar', docenteController.evaluarConvalidacion);
-
-// 5. Revision y evaluacion de seguimiento del formulario F_AA_119 / FCP-001A
+// 4. Revision y evaluacion de seguimiento del formulario F_AA_119 / FCP-001A
 router.get('/aulas/:aulaId/formulario-pendiente', docenteController.obtenerFormularioPendiente);
 router.put('/aulas/:aulaId/formulario-pendiente', docenteController.actualizarFormularioPendiente);
 router.put('/aulas/:aulaId/evaluar-formulario', docenteController.evaluarSeguimientoDocente);

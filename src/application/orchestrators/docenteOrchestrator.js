@@ -1,6 +1,5 @@
 import { expedienteService } from '../services/expedienteService.js';
 import { actividadService } from '../services/actividadService.js';
-import { convalidacionService } from '../services/convalidacionService.js';
 
 // orquestador para coordinar las operaciones de revision y evaluacion del docente tutor
 export const docenteOrchestrator = {
@@ -32,16 +31,6 @@ export const docenteOrchestrator = {
   // evalua y aprueba las horas comunitarias reportadas por el estudiante
   async evaluarActividadComunitaria(actividadId, docenteId, datos) {
     return await actividadService.evaluarActividadComunitaria(actividadId, docenteId, datos);
-  },
-
-  // revisa los certificados externos que el estudiante subio para convalidar horas
-  async listarConvalidaciones(aulaId) {
-    return await convalidacionService.listarCertificados(aulaId);
-  },
-
-  // dictamina si el certificado es valido para convalidar horas reglamentarias
-  async evaluarConvalidacion(certificadoId, datos) {
-    return await convalidacionService.evaluarCertificado(certificadoId, datos);
   },
 
   // revisa el borrador del formulario del estudiante antes del dictamen final

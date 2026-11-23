@@ -4,7 +4,6 @@ import { estudianteOrchestrator } from '../src/application/orchestrators/estudia
 import { docenteOrchestrator } from '../src/application/orchestrators/docenteOrchestrator.js';
 import { aulaService } from '../src/application/services/aulaService.js';
 import { actividadService } from '../src/application/services/actividadService.js';
-import { convalidacionService } from '../src/application/services/convalidacionService.js';
 import { expedienteService } from '../src/application/services/expedienteService.js';
 import { asistenteIaService } from '../src/application/services/asistenteIaService.js';
 import { excelService } from '../src/application/services/excelService.js';
@@ -94,31 +93,7 @@ describe('Pruebas de integracion del flujo completo de practicas preprofesionale
     expect(registroActividad.success).toBe(true);
     expect(registroActividad.actividad.horas).toBe(8);
 
-    // 4. Estudiante registra convalidacion de certificacion externa
-    jest.spyOn(convalidacionService, 'registrarCertificado').mockResolvedValue({
-      success: true,
-      message: 'Certificado registrado exitosamente para revision del tutor',
-      certificado: {
-        _id: 'cert_001',
-        nombreCurso: 'Arquitectura de Software y Cloud Computing',
-        institucionEmisora: 'Plataforma Especializada',
-        horasConvalidadas: 40,
-        estado: 'pendiente'
-      }
-    });
-
-    const registroConvalidacion = await estudianteOrchestrator.registrarCertificado(estudianteId, aulaId, {
-      nombreCurso: 'Arquitectura de Software y Cloud Computing',
-      institucionEmisora: 'Plataforma Especializada',
-      horasCertificado: 60,
-      horasConvalidadas: 40,
-      urlCertificado: 'https://certificados.org/cert-12345'
-    });
-
-    expect(registroConvalidacion.success).toBe(true);
-    expect(registroConvalidacion.certificado.horasConvalidadas).toBe(40);
-
-    // 5. Docente tutor revisa y aprueba actividades y convalidaciones
+    // 4. Docente tutor revisa y aprueba actividades
     jest.spyOn(actividadService, 'evaluarActividadLaboral').mockResolvedValue({
       success: true,
       message: 'Actividad evaluada exitosamente',
@@ -136,24 +111,6 @@ describe('Pruebas de integracion del flujo completo de practicas preprofesionale
 
     expect(evaluacionActividad.success).toBe(true);
     expect(evaluacionActividad.actividad.estado).toBe('aprobada');
-
-    jest.spyOn(convalidacionService, 'evaluarCertificado').mockResolvedValue({
-      success: true,
-      message: 'Certificado de convalidacion aprobado satisfactoriamente',
-      certificado: {
-        _id: 'cert_001',
-        estado: 'aprobado',
-        horasConvalidadas: 40
-      }
-    });
-
-    const evaluacionCertificado = await docenteOrchestrator.evaluarConvalidacion('cert_001', {
-      estado: 'aprobado',
-      observacion: 'Contenido pertinente a la malla curricular.'
-    });
-
-    expect(evaluacionCertificado.success).toBe(true);
-    expect(evaluacionCertificado.certificado.estado).toBe('aprobado');
 
     // 6. Estudiante genera borrador del informe asistido por IA y entrega el expediente
     jest.spyOn(asistenteIaService, 'generarBorradorInforme').mockResolvedValue({

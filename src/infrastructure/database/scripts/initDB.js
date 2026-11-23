@@ -44,13 +44,13 @@ export const initDatabase = async () => {
 
     const coleccionesEsperadas = [
       'usuarios',
-      'aulas_virtuales',
+      'aulas_virtuales_laborales',
+      'aulas_virtuales_convalidacion',
       'actividades_laborales',
       'actividades_comunitarias',
-      'convalidaciones_certificados',
       'fuentes_institucionales',
       'formularios_pendientes',
-      'formularios_aprobaciones'
+      'formularios_aprobados'
     ];
 
     const coleccionesExistentes = await db.listCollections().toArray();

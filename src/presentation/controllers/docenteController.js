@@ -60,31 +60,6 @@ export const docenteController = {
     }
   },
 
-  async listarConvalidaciones(req, res, next) {
-    try {
-      const { aulaId } = req.params;
-      const resultado = await docenteOrchestrator.listarConvalidaciones(aulaId);
-      res.json(resultado);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async evaluarConvalidacion(req, res, next) {
-    try {
-      const { certificadoId } = req.params;
-      const resultado = await docenteOrchestrator.evaluarConvalidacion(certificadoId, req.body);
-      res.json({
-        success: true,
-        message: 'Certificado evaluado correctamente por el docente tutor',
-        certificado: resultado,
-        resumenHoras: resultado._doc?.resumenHoras || resultado.resumenHoras
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
   async obtenerFormularioPendiente(req, res, next) {
     try {
       const { aulaId } = req.params;

@@ -27,13 +27,7 @@ router.get('/aulas/:aulaId/comunitarias', estudianteController.listarActividades
 router.put('/aulas/:aulaId/comunitarias/:actividadId', estudianteController.actualizarActividadComunitaria);
 router.put('/comunitarias/:actividadId', estudianteController.actualizarActividadComunitaria);
 
-// 5. Convalidacion de certificaciones externas
-router.post('/aulas/:aulaId/convalidaciones', estudianteController.registrarCertificado);
-router.get('/aulas/:aulaId/convalidaciones', estudianteController.listarCertificados);
-router.put('/aulas/:aulaId/convalidaciones/:certificadoId', estudianteController.actualizarCertificado);
-router.put('/convalidaciones/:certificadoId', estudianteController.actualizarCertificado);
-
-// 6. Redaccion del informe de practicas (F_AA_119) y convalidacion (FCP-001A) asistida por IA
+// 5. Redaccion del informe de practicas (F_AA_119) y convalidacion (FCP-001A) asistida por IA
 router.get('/aulas/:aulaId/formulario-pendiente', estudianteController.obtenerFormularioPendiente);
 router.put('/aulas/:aulaId/formulario-pendiente', estudianteController.actualizarFormularioPendiente);
 router.post('/aulas/:aulaId/ia/generar-informe', estudianteController.generarBorradorInforme);

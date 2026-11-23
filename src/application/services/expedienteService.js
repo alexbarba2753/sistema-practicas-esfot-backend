@@ -5,7 +5,6 @@ import { FormularioAprobacion } from '../../infrastructure/database/models/Formu
 import { ActividadLaboral } from '../../infrastructure/database/models/ActividadLaboral.js';
 import { ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
 import { actividadService } from './actividadService.js';
-import { convalidacionService } from './convalidacionService.js';
 import { excelService } from './excelService.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
@@ -215,7 +214,6 @@ export const expedienteService = {
     const aulasConProgreso = await Promise.all(
       aulas.map(async (aula) => {
         const resumen = await actividadService.calcularHorasAula(aula._id);
-        const convalidaciones = await convalidacionService.listarCertificados(aula._id);
         return {
           _id: aula._id,
           nombre: aula.nombre,
@@ -228,8 +226,7 @@ export const expedienteService = {
           estado: aula.estado,
           expedienteEntregado: aula.expedienteEntregado,
           docenteTutor: aula.docenteTutor,
-          resumenHoras: resumen,
-          horasConvalidadas: convalidaciones.horasConvalidadas
+          resumenHoras: resumen
         };
       })
     );
@@ -489,7 +486,6 @@ export const expedienteService = {
     const aulasConProgreso = await Promise.all(
       aulas.map(async (aula) => {
         const resumen = await actividadService.calcularHorasAula(aula._id);
-        const convalidaciones = await convalidacionService.listarCertificados(aula._id);
         return {
           _id: aula._id,
           nombre: aula.nombre,
@@ -502,8 +498,7 @@ export const expedienteService = {
           estado: aula.estado,
           expedienteEntregado: aula.expedienteEntregado,
           estudiante: aula.estudiante,
-          resumenHoras: resumen,
-          horasConvalidadas: convalidaciones.horasConvalidadas
+          resumenHoras: resumen
         };
       })
     );
@@ -566,8 +561,6 @@ export const expedienteService = {
       horasConvalidadas = aula.horasRequeridas;
     } else {
       resumen = await actividadService.calcularHorasAula(aulaId);
-      const convalidaciones = await convalidacionService.listarCertificados(aulaId);
-      horasConvalidadas = convalidaciones.horasConvalidadas;
     }
 
     return {

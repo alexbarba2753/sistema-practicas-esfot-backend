@@ -80,36 +80,6 @@ export const estudianteController = {
     }
   },
 
-  async registrarCertificado(req, res, next) {
-    try {
-      const { aulaId } = req.params;
-      const resultado = await estudianteOrchestrator.registrarCertificado(req.usuario.id, aulaId, req.body);
-      res.status(201).json(resultado);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async listarCertificados(req, res, next) {
-    try {
-      const { aulaId } = req.params;
-      const resultado = await estudianteOrchestrator.listarCertificados(aulaId);
-      res.json(resultado);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async actualizarCertificado(req, res, next) {
-    try {
-      const { certificadoId, aulaId } = req.params;
-      const resultado = await estudianteOrchestrator.actualizarCertificado(req.usuario.id, certificadoId, req.body, aulaId);
-      res.json(resultado);
-    } catch (error) {
-      next(error);
-    }
-  },
-
   async obtenerFormularioPendiente(req, res, next) {
     try {
       const { aulaId } = req.params;
