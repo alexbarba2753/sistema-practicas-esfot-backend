@@ -221,9 +221,9 @@ export const asistenteIaService = {
     if (!formulario.creditosAprobados || Number(formulario.creditosAprobados) <= 0) {
       faltantes.push('Créditos aprobados');
     }
-    if (!hs.horaInicio || String(hs.horaInicio).trim() === '') faltantes.push('Hora de inicio');
-    if (!hs.horaFin || String(hs.horaFin).trim() === '') faltantes.push('Hora de fin');
-    if (!hs.horasSemanales || Number(hs.horasSemanales) <= 0) faltantes.push('Horas semanales');
+    if (!hs.horasSemanales || Number(hs.horasSemanales) <= 0) {
+      faltantes.push('Horario semanal configurado');
+    }
 
     if (faltantes.length > 0) {
       throw errorHttp(

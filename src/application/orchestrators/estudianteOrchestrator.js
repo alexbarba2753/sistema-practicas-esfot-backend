@@ -50,6 +50,11 @@ export const estudianteOrchestrator = {
     return await actividadService.actualizarActividadComunitaria(estudianteId, actividadId, datos);
   },
 
+  // registra y calcula el horario semanal de practicas laborales por dia y bloques
+  async configurarHorarioLaboral(aulaId, estudianteId, datos) {
+    return await expedienteService.configurarHorarioLaboral(aulaId, estudianteId, datos);
+  },
+
   // consulta los datos que tiene guardados en su formulario de informe fcp-001a
   async obtenerFormularioPendiente(aulaId) {
     return await expedienteService.obtenerFormularioPendiente(aulaId);

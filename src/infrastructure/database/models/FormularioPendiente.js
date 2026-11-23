@@ -1,6 +1,30 @@
 import mongoose from 'mongoose';
 import { MODALIDADES } from '../../../domain/constants/practicasConstants.js';
 
+const bloqueHorarioSchema = new mongoose.Schema(
+  {
+    horaInicio: { type: String, required: true, trim: true },
+    horaFin: { type: String, required: true, trim: true }
+  },
+  { _id: false }
+);
+
+const horarioSemanalSchema = new mongoose.Schema(
+  {
+    lunes: { type: [bloqueHorarioSchema], default: [] },
+    martes: { type: [bloqueHorarioSchema], default: [] },
+    miercoles: { type: [bloqueHorarioSchema], default: [] },
+    jueves: { type: [bloqueHorarioSchema], default: [] },
+    viernes: { type: [bloqueHorarioSchema], default: [] },
+    sabado: { type: [bloqueHorarioSchema], default: [] },
+    domingo: { type: [bloqueHorarioSchema], default: [] },
+    horasSemanales: { type: Number, default: 0 },
+    horasProyectadas: { type: Number, default: 0 },
+    observacionesFechas: { type: String, default: '' }
+  },
+  { _id: false }
+);
+
 export function crearDefinicionFormulario() {
   return {
     aulaVirtual: {
@@ -65,12 +89,7 @@ export function crearDefinicionFormulario() {
       default: undefined
     },
     horarioSemanal: {
-      type: {
-        horaInicio: { type: String, default: '08:00' },
-        horaFin: { type: String, default: '16:30' },
-        horasSemanales: { type: Number, default: 40 },
-        observacionesFechas: { type: String, default: '' }
-      },
+      type: horarioSemanalSchema,
       default: undefined
     },
     contenidoIa: {

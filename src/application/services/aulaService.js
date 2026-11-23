@@ -191,11 +191,6 @@ export const aulaService = {
             responsable: datosEmpresa.responsable || '',
             cedulaResponsable: datosEmpresa.cedulaResponsable || ''
           },
-          horarioSemanal: {
-            horaInicio: '08:00',
-            horaFin: '16:30',
-            horasSemanales: datosEmpresa.horasDiarias ? datosEmpresa.horasDiarias * 5 : 40
-          },
           contenidoIa: {
             asignaturasUtilidad: '',
             principalesActividades: '',

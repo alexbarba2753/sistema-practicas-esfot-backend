@@ -28,6 +28,7 @@ router.put('/aulas/:aulaId/comunitarias/:actividadId', estudianteController.actu
 router.put('/comunitarias/:actividadId', estudianteController.actualizarActividadComunitaria);
 
 // 5. Redaccion del informe de practicas (F_AA_119) y convalidacion (FCP-001A) asistida por IA
+router.put('/aulas/:aulaId/horario', estudianteController.configurarHorarioLaboral);
 router.get('/aulas/:aulaId/formulario-pendiente', estudianteController.obtenerFormularioPendiente);
 router.put('/aulas/:aulaId/formulario-pendiente', estudianteController.actualizarFormularioPendiente);
 router.post('/aulas/:aulaId/ia/generar-informe', estudianteController.generarBorradorInforme);

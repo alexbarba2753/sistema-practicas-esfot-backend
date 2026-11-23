@@ -7,6 +7,7 @@ import { ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConst
 import { actividadService } from './actividadService.js';
 import { excelService } from './excelService.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
+import { validarYCalcularHorarioSemanal } from '../../domain/utils/validarHorario.js';
 
 const CAMPOS_ENTIDAD_LABORAL = [
   'razonSocial',
@@ -78,17 +79,23 @@ function aplicarCamposPorTipoAula(formulario, esConvalidacion, datos) {
       formulario.creditosAprobados = Number(creditos);
     }
 
-    if (datos.horarioSemanal) {
+    const totalH = datos.totalHoras ?? datos.horarioSemanal?.totalHoras;
+    if (totalH !== undefined) {
+      const nTotal = Number(totalH);
+      if (isNaN(nTotal) || nTotal <= 0) {
+        throw errorHttp('El numero total de horas debe ser mayor a cero', 400);
+      }
+      formulario.totalHoras = nTotal;
+    }
+
+    if (datos.horarioSemanal?.observacionesFechas !== undefined) {
       const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
         ? formulario.horarioSemanal.toObject()
         : (formulario.horarioSemanal || {});
-      const horarioFiltrado = {};
-      for (const campo of ['horaInicio', 'horaFin', 'horasSemanales', 'observacionesFechas']) {
-        if (datos.horarioSemanal[campo] !== undefined) {
-          horarioFiltrado[campo] = datos.horarioSemanal[campo];
-        }
-      }
-      formulario.horarioSemanal = { ...actualHorario, ...horarioFiltrado };
+      formulario.horarioSemanal = {
+        ...actualHorario,
+        observacionesFechas: String(datos.horarioSemanal.observacionesFechas).trim()
+      };
     }
   }
 
@@ -205,11 +212,18 @@ function formatearDatosGeneralesFormulario(formulario, aula, esConvalidacionOpci
     horarioSemanal: {
       fechaInicio: aula?.fechaInicio || null,
       fechaFin: aula?.fechaFin || null,
-      horaInicio: hs.horaInicio || '08:00',
-      horaFin: hs.horaFin || '16:30',
-      horasSemanales: hs.horasSemanales ?? (emp.horasDiarias ? emp.horasDiarias * 5 : 40),
+      configurado: Boolean(hs && Number(hs.horasSemanales) > 0),
+      lunes: hs.lunes || [],
+      martes: hs.martes || [],
+      miercoles: hs.miercoles || [],
+      jueves: hs.jueves || [],
+      viernes: hs.viernes || [],
+      sabado: hs.sabado || [],
+      domingo: hs.domingo || [],
+      horasSemanales: hs.horasSemanales || 0,
+      horasProyectadas: hs.horasProyectadas || 0,
       observacionesFechas: hs.observacionesFechas || '',
-      totalHoras: formulario.totalHoras || aula?.horasRequeridas || 0
+      totalHoras: formulario.totalHoras || hs.horasProyectadas || 0
     },
     contenidoIa: esConvalidacion
       ? {
@@ -380,6 +394,61 @@ export const expedienteService = {
       await formulario.save();
     }
     return formatearDatosGeneralesFormulario(formulario, aula, esConvalidacion);
+  },
+
+  async configurarHorarioLaboral(aulaId, estudianteId, datos) {
+    const queryAula = AulaVirtual.findById(aulaId);
+    const aula = typeof queryAula?.populate === 'function'
+      ? await queryAula.populate('estudiante', 'nombres apellidos cedula correo')
+      : await queryAula;
+    if (!aula) throw errorHttp('Aula virtual laboral no encontrada', 404);
+
+    const aulaEstudianteId = aula.estudiante?._id ? aula.estudiante._id.toString() : aula.estudiante?.toString();
+    if (aulaEstudianteId !== estudianteId.toString()) {
+      throw errorHttp('No tienes permiso para configurar el horario de esta aula', 403);
+    }
+
+    if (aula.estado !== ESTADOS_AULA.ABIERTA) {
+      throw errorHttp('El aula virtual se encuentra cerrada; no se puede modificar el horario', 400);
+    }
+
+    let formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (aula.expedienteEntregado && formulario?.estado !== 'observado') {
+      throw errorHttp('El expediente ya fue entregado a revision; no se puede modificar el horario', 403);
+    }
+
+    const { horarioNormalizado, horasSemanales, horasProyectadas } = validarYCalcularHorarioSemanal(datos, aula);
+
+    if (!formulario) {
+      const emp = aula.datosEmpresa || {};
+      formulario = new FormularioPendiente({
+        aulaVirtual: aulaId,
+        estudiante: estudianteId,
+        modalidad: aula.modalidad,
+        tipoAula: 'laboral',
+        entidadReceptora: {
+          razonSocial: emp.razonSocial || '',
+          areaAsignada: emp.areaAsignada || '',
+          responsable: emp.responsable || '',
+          cedulaResponsable: emp.cedulaResponsable || ''
+        }
+      });
+    }
+
+    const obsPrevias = formulario.horarioSemanal?.observacionesFechas || '';
+    formulario.horarioSemanal = {
+      ...horarioNormalizado,
+      horasSemanales,
+      horasProyectadas,
+      observacionesFechas: datos.observacionesFechas !== undefined
+        ? String(datos.observacionesFechas).trim()
+        : obsPrevias
+    };
+    formulario.totalHoras = datos.totalHoras !== undefined ? Number(datos.totalHoras) : horasProyectadas;
+    formulario.ultimaEdicionEstudiante = new Date();
+
+    await formulario.save();
+    return formatearDatosGeneralesFormulario(formulario, aula, false);
   },
 
   async actualizarFormularioPendiente(aulaId, estudianteId, datos) {

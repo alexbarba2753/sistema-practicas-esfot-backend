@@ -80,6 +80,20 @@ export const estudianteController = {
     }
   },
 
+  async configurarHorarioLaboral(req, res, next) {
+    try {
+      const { aulaId } = req.params;
+      const formulario = await estudianteOrchestrator.configurarHorarioLaboral(aulaId, req.usuario.id, req.body);
+      res.json({
+        success: true,
+        message: 'Horario semanal registrado y proyectado correctamente',
+        formulario
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async obtenerFormularioPendiente(req, res, next) {
     try {
       const { aulaId } = req.params;

@@ -1,6 +1,7 @@
 import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js';
 import { ActividadLaboral } from '../../infrastructure/database/models/ActividadLaboral.js';
 import { ActividadComunitaria } from '../../infrastructure/database/models/ActividadComunitaria.js';
+import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
 import { ESTADOS_ACTIVIDAD, ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 import { validarJornadaLaboral, validarActividadComunitariaDatos } from '../../domain/utils/validarActividad.js';
@@ -66,6 +67,14 @@ export const actividadService = {
 
     if (aula.expedienteEntregado) {
       throw errorHttp('El expediente ya fue entregado a revision; no se pueden anadir/modificar actividades', 403);
+    }
+
+    const formulario = await FormularioPendiente.findOne({ aulaVirtual: aulaId });
+    if (!formulario?.horarioSemanal?.horasSemanales || formulario.horarioSemanal.horasSemanales <= 0) {
+      throw errorHttp(
+        'Primero debes configurar tu horario semanal de practicas antes de registrar actividades en la bitacora',
+        400
+      );
     }
 
     const resumenPrevio = await this.calcularHorasAula(aulaId);

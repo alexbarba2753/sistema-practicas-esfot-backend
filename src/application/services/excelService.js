@@ -126,30 +126,63 @@ export const excelService = {
     }
 
     const horario = formularioPendiente?.horarioSemanal || {};
-    const horaIni = horario.horaInicio || '08:00';
-    const horaFin = horario.horaFin || '16:30';
-    const horasSem = horario.horasSemanales || 40;
+    const diasCols = [
+      ['B', 'lunes'],
+      ['C', 'martes'],
+      ['D', 'miercoles'],
+      ['E', 'jueves'],
+      ['F', 'viernes'],
+      ['G', 'sabado'],
+      ['H', 'domingo']
+    ];
+    const tienePorDias = diasCols.some(([, dia]) => Array.isArray(horario[dia]));
 
-    ['B51', 'C51', 'D51', 'E51', 'F51'].forEach((ref) => {
-      const c = worksheet.getCell(ref);
-      c.value = horaIni;
-      c.font = { name: 'Tahoma', size: 8, bold: true, color: { argb: 'FF000000' } };
-      c.alignment = { vertical: 'middle', horizontal: 'center' };
+    diasCols.forEach(([col, dia], idx) => {
+      let valIni = '';
+      let valFin = '';
+
+      if (tienePorDias) {
+        const bloques = Array.isArray(horario[dia]) ? horario[dia] : [];
+        if (bloques.length === 1) {
+          valIni = bloques[0].horaInicio || '';
+          valFin = bloques[0].horaFin || '';
+        } else if (bloques.length >= 2) {
+          valIni = `${bloques[0].horaInicio} - ${bloques[0].horaFin}`;
+          valFin = bloques
+            .slice(1)
+            .map((b) => `${b.horaInicio} - ${b.horaFin}`)
+            .join(' / ');
+        }
+      } else if (idx < 5) {
+        valIni = horario.horaInicio || '';
+        valFin = horario.horaFin || '';
+      }
+
+      const cIni = worksheet.getCell(`${col}51`);
+      cIni.value = valIni;
+      cIni.font = { name: 'Tahoma', size: 8, bold: true, color: { argb: 'FF000000' } };
+      cIni.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      const cFin = worksheet.getCell(`${col}52`);
+      cFin.value = valFin;
+      cFin.font = { name: 'Tahoma', size: 8, bold: true, color: { argb: 'FF000000' } };
+      cFin.alignment = { vertical: 'middle', horizontal: 'center' };
     });
 
-    ['B52', 'C52', 'D52', 'E52', 'F52'].forEach((ref) => {
-      const c = worksheet.getCell(ref);
-      c.value = horaFin;
-      c.font = { name: 'Tahoma', size: 8, bold: true, color: { argb: 'FF000000' } };
-      c.alignment = { vertical: 'middle', horizontal: 'center' };
-    });
+    if (horario.observacionesFechas) {
+      const cellObs = worksheet.getCell('B53');
+      cellObs.value = horario.observacionesFechas;
+      cellObs.font = { name: 'Tahoma', size: 8, color: { argb: 'FF000000' } };
+      cellObs.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+    }
 
     const cellHorasSem = worksheet.getCell('I52');
-    cellHorasSem.value = horasSem;
+    cellHorasSem.value = horario.horasSemanales || 0;
     cellHorasSem.font = { name: 'Tahoma', size: 9, bold: true, color: { argb: 'FF000000' } };
     cellHorasSem.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    worksheet.getCell('I54').value = formularioPendiente?.totalHoras || aula?.horasRequeridas || 240;
+    worksheet.getCell('I54').value =
+      formularioPendiente?.totalHoras || horario.horasProyectadas || aula?.horasRequeridas || 240;
 
     if (contenido.principalesActividades) {
       const textoAct = limpiarTextoParaExcel(contenido.principalesActividades);
