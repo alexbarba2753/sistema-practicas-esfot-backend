@@ -24,16 +24,26 @@ const normalizarTexto = (txt = '') =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-async function obtenerContextoMallaCurricular(carrera = '', textoActividades = '') {
+const ES_MATERIA_TITULACION = (texto = '') => {
+  const norm = normalizarTexto(texto);
+  return (
+    norm.includes('integracion curricular') ||
+    norm.includes('examen complexivo') ||
+    norm.includes('caracter complexivo') ||
+    /\btitd\d+/i.test(texto)
+  );
+};
+
+async function obtenerContextoMallaCurricular(carrera = '') {
   let fuentes = [];
   try {
     fuentes = await FuenteInstitucional.find({ activo: true });
   } catch {
-    return { contextoMalla: '', materiasSeleccionadas: [] };
+    return { contextoMalla: '' };
   }
 
   if (!Array.isArray(fuentes) || fuentes.length === 0) {
-    return { contextoMalla: '', materiasSeleccionadas: [] };
+    return { contextoMalla: '' };
   }
 
   const carreraNorm = normalizarTexto(carrera);
@@ -48,51 +58,25 @@ async function obtenerContextoMallaCurricular(carrera = '', textoActividades = '
     fuentes.find((f) => /malla|pensum|curricular/i.test(f.titulo || ''));
 
   if (!fuenteMalla || !Array.isArray(fuenteMalla.fragmentos)) {
-    return { contextoMalla: '', materiasSeleccionadas: [] };
+    return { contextoMalla: '' };
   }
 
   const fragmentosConMaterias = fuenteMalla.fragmentos
     .map((fr) => fr.texto || '')
-    .filter((t) => /c[oó]digo:/i.test(t));
+    .filter((t) => /c[oó]digo:/i.test(t))
+    .map((t) =>
+      t
+        .split('\n')
+        .filter((linea) => !ES_MATERIA_TITULACION(linea))
+        .join('\n')
+    )
+    .filter(Boolean);
 
-  const contextoMalla = fragmentosConMaterias.join('\n').slice(0, 6000);
-
-  // Extraer materias reales desde los fragmentos del RAG para respaldo sin IA externa
-  const materiasExtraidas = [];
-  const regexMateria = /\*\s*\*\*([^*]+)\*\*\s*\|\s*C[oó]digo:\s*`?([A-Z0-9-]+)`?/gi;
-  let match;
-  while ((match = regexMateria.exec(contextoMalla)) !== null) {
-    const nombre = match[1].trim();
-    const codigo = match[2].trim();
-    if (!/f[ií]sica|c[aá]lculo|comunicaci[oó]n|ingl[eé]s|educaci[oó]n/i.test(nombre)) {
-      materiasExtraidas.push({ nombre, codigo });
-    }
-  }
-
-  const actividadesNorm = normalizarTexto(textoActividades);
-  const palabrasAct = actividadesNorm.split(/\s+/).filter((w) => w.length >= 4);
-
-  const puntuadas = materiasExtraidas.map((m) => {
-    const nombreNorm = normalizarTexto(m.nombre);
-    let score = 0;
-    for (const p of palabrasAct) {
-      if (nombreNorm.includes(p)) score += 2;
-    }
-    if (/programaci[oó]n|base|datos|web|software|redes|aplicaciones|dise[nñ]o/i.test(nombreNorm)) {
-      score += 1;
-    }
-    return { ...m, score };
-  });
-
-  puntuadas.sort((a, b) => b.score - a.score);
-  const materiasSeleccionadas = puntuadas
-    .slice(0, 4)
-    .map((m) => `• ${m.nombre} (${m.codigo}): Aplicación práctica de sus fundamentos en el proyecto`);
+  const contextoMalla = fragmentosConMaterias.join('\n').slice(0, 15000);
 
   return {
     tituloFuente: fuenteMalla.titulo,
-    contextoMalla,
-    materiasSeleccionadas
+    contextoMalla
   };
 }
 
@@ -262,81 +246,87 @@ export const asistenteIaService = {
       .join('\n');
 
     if (aula.modalidad === MODALIDADES.LABORAL) {
-      const { contextoMalla, materiasSeleccionadas } = await obtenerContextoMallaCurricular(
-        aula.carrera || 'Desarrollo de Software',
-        descripcionesUnicas.join(' ')
+      const { contextoMalla } = await obtenerContextoMallaCurricular(
+        aula.carrera || 'Desarrollo de Software'
       );
 
-      let generado = null;
       const client = getGroqClient();
+      if (!client) {
+        throw errorHttp('El servicio de IA (Groq) no está configurado. Verifica GROQ_API_KEY.', 503);
+      }
 
-      if (client) {
-        try {
-          const completion = await client.chat.completions.create({
-            model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
-            response_format: { type: 'json_object' },
-            messages: [
-              {
-                role: 'system',
-                content:
-                  'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional). Debes devolver EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redacta en español formal académico, sintetizando sin copiar textualmente la bitácora y usando únicamente asignaturas reales de la malla provista.'
-              },
-              {
-                role: 'user',
-                content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
+      let generado = null;
+      try {
+        const completion = await client.chat.completions.create({
+          model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional). Devuelves EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redactas en español formal académico, sintetizando y enriqueciendo técnicamente el contenido sin copiar literalmente las entradas de la bitácora, y usando únicamente asignaturas reales de la malla provista.'
+            },
+            {
+              role: 'user',
+              content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
 Área asignada: ${er.areaAsignada || 'Desarrollo de Software'}
 Total de horas cumplidas: ${totalHoras}h
 
 Malla Curricular oficial (Fuente RAG):
 ${contextoMalla || 'No disponible'}
 
-Bitácora de actividades registradas por el estudiante:
-${bitacoraTexto.slice(0, 4000)}
+Bitácora completa de actividades registradas por el estudiante:
+${bitacoraTexto.slice(0, 8000)}
 
-Genera el JSON con estas reglas estrictas:
-1. "asignaturasUtilidad": Selecciona de la Malla Curricular oficial provista entre 3 y 5 asignaturas que correspondan a las actividades realizadas (con su nombre y código exactos de la malla, más la temática aplicada). Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• ".
-2. "principalesActividades": String con un resumen sintetizado (NO copiado textualmente ni repetido) de las principales actividades desarrolladas, separado en 4 a 6 viñetas, UNA POR LÍNEA empezando cada línea con "• ".
-3. "habilidadesAdquiridas": String con un párrafo técnico amplio (3 a 5 líneas, 50 a 80 palabras) sobre las habilidades, destrezas y conocimientos técnicos y profesionales adquiridos.
-4. "observacionesTemas": String con un párrafo amplio (2 a 4 líneas, 40 a 65 palabras) indicando los temas, herramientas o estándares que no se revisaron a profundidad en clases y que fueron necesarios durante la práctica.`
-              }
-            ],
-            temperature: 0.3,
-            max_completion_tokens: 2048,
-            top_p: 1,
-            reasoning_effort: 'medium',
-            stream: false
-          });
+Genera el JSON siguiendo estas reglas estrictas:
+1. "asignaturasUtilidad": Analiza TODAS las actividades de la bitácora y selecciona de la Malla Curricular oficial provista todas las asignaturas profesionales pertinentes a lo ejecutado (idealmente entre 4 y 8 asignaturas si las actividades abarcan distintas áreas; no te limites a 2).
+   - PROHIBIDO incluir asignaturas de titulación o examen complexivo (como "Diseño de Trabajo de Integración Curricular", "Preparación Examen Complexivo", "Trabajo de Integración Curricular" o "Examen de Carácter Complexivo").
+   - Para CADA asignatura elegida, deduce y redacta los temas o contenidos específicos de esa materia que se aplicaron en las actividades (ejemplo: "• Bases de Datos (TDSD343): Diseño de esquemas relacionales y no relacionales, consultas, indexación e integridad de datos"). PROHIBIDO usar frases genéricas o repetitivas como "Aplicación práctica de sus fundamentos en el proyecto".
+   - Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• Nombre exacto (CÓDIGO): Temáticas específicas aplicadas".
+2. "principalesActividades": Sintetiza y agrupa todas las actividades de la bitácora en un resumen técnico enriquecido (NO copies ni parafrasees línea por línea cada registro de la bitácora). Redacta entre 5 y 7 viñetas elaboradas que expliquen con claridad el alcance técnico, arquitectura, módulos y propósito de lo desarrollado. Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• ".
+3. "habilidadesAdquiridas": Redacta un texto técnico amplio y detallado (120 a 180 palabras, equivalente a 6 a 9 líneas) sobre las competencias técnicas, metodologías, herramientas y habilidades profesionales consolidadas durante la práctica, sustentado en las actividades reales de la bitácora.
+4. "observacionesTemas": Redacta un párrafo amplio y específico (90 a 140 palabras, equivalente a 4 a 7 líneas) detallando las herramientas, frameworks, estándares o temáticas avanzadas que no se profundizaron en clases y que el estudiante debió investigar y aplicar de forma autónoma durante la práctica.`
+            }
+          ],
+          temperature: 0.4,
+          max_completion_tokens: 4096,
+          top_p: 1,
+          reasoning_effort: 'medium',
+          stream: false
+        });
 
-          const rawJson = completion.choices[0]?.message?.content;
-          if (rawJson) {
-            const limpioJson = rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-            generado = JSON.parse(limpioJson);
-          }
-        } catch (err) {
-          // Si falla la llamada externa, se usa el sintetizador local basado en RAG
+        const rawJson = completion.choices[0]?.message?.content;
+        if (!rawJson) {
+          throw new Error('La respuesta del modelo llegó vacía');
         }
+        const limpioJson = rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        generado = JSON.parse(limpioJson);
+      } catch (err) {
+        console.error('Error al generar informe con Groq:', err.message);
+        throw errorHttp(`No se pudo generar el informe con IA (Groq): ${err.message}`, 502);
       }
 
-      const asignaturasFallback =
-        materiasSeleccionadas.length > 0
-          ? materiasSeleccionadas.join('\n')
-          : '• Asignaturas de formación profesional de la malla curricular vigente aplicadas al proyecto.';
-
-      const actividadesFallback = descripcionesUnicas
-        .slice(0, 6)
-        .map((d) => `• ${d.replace(/\.+$/, '')}.`)
+      const asignaturasFiltradas = String(generado?.asignaturasUtilidad || '')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l && !ES_MATERIA_TITULACION(l))
         .join('\n');
 
-      formulario.contenidoIa.asignaturasUtilidad =
-        generado?.asignaturasUtilidad || asignaturasFallback;
-      formulario.contenidoIa.principalesActividades =
-        generado?.principalesActividades || actividadesFallback;
-      formulario.contenidoIa.habilidadesAdquiridas =
-        generado?.habilidadesAdquiridas ||
-        'Durante el desarrollo de la práctica preprofesional se consolidaron competencias técnicas en el diseño e implementación de servicios backend RESTful, modelado y optimización de consultas en bases de datos, validación documental automatizada y aplicación de pruebas unitarias. Asimismo, se fortalecieron habilidades blandas como el trabajo colaborativo, la comunicación técnica efectiva, la resolución estructurada de incidencias y el cumplimiento de estándares de calidad en entornos reales de producción.';
-      formulario.contenidoIa.observacionesTemas =
-        generado?.observacionesTemas ||
-        'Durante la ejecución de las actividades asignadas fue necesario profundizar de manera autónoma en herramientas avanzadas de versionamiento colaborativo, automatización de pruebas de integración, manejo de flujos de autenticación basados en tokens y despliegue continuo de servicios, complementando así los fundamentos teóricos revisados en las asignaturas de la carrera.';
+      const principalesActividades = String(generado?.principalesActividades || '').trim();
+      const habilidadesAdquiridas = String(generado?.habilidadesAdquiridas || '').trim();
+      const observacionesTemas = String(generado?.observacionesTemas || '').trim();
+
+      if (!asignaturasFiltradas || !principalesActividades || !habilidadesAdquiridas || !observacionesTemas) {
+        throw errorHttp(
+          'La IA devolvió campos vacíos o incompletos al generar el informe. Intenta nuevamente.',
+          502
+        );
+      }
+
+      formulario.contenidoIa.asignaturasUtilidad = asignaturasFiltradas;
+      formulario.contenidoIa.principalesActividades = principalesActividades;
+      formulario.contenidoIa.habilidadesAdquiridas = habilidadesAdquiridas;
+      formulario.contenidoIa.observacionesTemas = observacionesTemas;
       formulario.fechaGeneracionIa = new Date();
 
       await formulario.save();
@@ -404,29 +394,29 @@ Genera el JSON con estas reglas estrictas:
     }
 
     const textoCertificado = aula.certificadoPdf?.textoExtraido || '';
-    const textoBase = [resumenOriginal, contribucionOriginal, asignaturasOriginal, textoCertificado].join(' ');
-    const { contextoMalla, materiasSeleccionadas } = await obtenerContextoMallaCurricular(
-      aula.carrera || 'Desarrollo de Software',
-      textoBase
+    const { contextoMalla } = await obtenerContextoMallaCurricular(
+      aula.carrera || 'Desarrollo de Software'
     );
 
-    let mejorado = null;
     const client = getGroqClient();
+    if (!client) {
+      throw errorHttp('El servicio de IA (Groq) no está configurado. Verifica GROQ_API_KEY.', 503);
+    }
 
-    if (client) {
-      try {
-        const completion = await client.chat.completions.create({
-          model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Eres un asesor academico oficial de la ESFOT (Escuela Politecnica Nacional). Debes mejorar, ampliar y redactar en español formal academico los 4 campos de la Seccion 6 del formulario FCP-001A de convalidacion, integrando coherentemente lo escrito por el estudiante, la informacion real extraida del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON valido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas.'
-            },
-            {
-              role: 'user',
-              content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
+    let mejorado = null;
+    try {
+      const completion = await client.chat.completions.create({
+        model: ENV.GROQ_MODEL || 'openai/gpt-oss-120b',
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un asesor academico oficial de la ESFOT (Escuela Politecnica Nacional). Debes mejorar, ampliar y redactar en español formal academico los 4 campos de la Seccion 6 del formulario FCP-001A de convalidacion, integrando coherentemente lo escrito por el estudiante, la informacion real extraida del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON valido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas.'
+          },
+          {
+            role: 'user',
+            content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
 Modalidad de convalidacion: ${aula.modalidad}
 Horas solicitadas: ${aula.horasRequeridas}h
 Institucion / Plataforma: ${aula.datosInstitucion?.razonSocial || formulario.entidadReceptora?.razonSocial || 'N/A'}
@@ -444,48 +434,51 @@ Malla Curricular oficial (Fuente RAG):
 ${contextoMalla || 'No disponible'}
 
 Instrucciones estrictas para el JSON:
-1. "resumenActividades": Redacta un parrafo tecnico mas completo y detallado (60 a 100 palabras) o vinetas limpias con "• " integrando las actividades descritas por el estudiante y los detalles reales del certificado.
-2. "contribucionConocimientos": Amplia y fundamenta academicamente (50 a 80 palabras) como estas actividades contribuyeron al perfil de egreso de la carrera.
-3. "resultadosAprendizaje": Redacta de forma precisa (45 a 75 palabras) los resultados de aprendizaje del perfil de egreso fortalecidos.
-4. "asignaturasMalla": Conserva o complementa con 2 a 4 asignaturas reales de la malla curricular provista (con su codigo entre parentesis) explicando las tematicas aplicadas en relacion con las actividades.`
-            }
-          ],
-          temperature: 0.3,
-          max_completion_tokens: 2048,
-          top_p: 1,
-          reasoning_effort: 'medium',
-          stream: false
-        });
+1. "resumenActividades": Redacta un parrafo tecnico mas completo y detallado (80 a 130 palabras) o vinetas limpias con "• " integrando las actividades descritas por el estudiante y los detalles reales del certificado, sin copiar textualmente.
+2. "contribucionConocimientos": Amplia y fundamenta academicamente (80 a 120 palabras) como estas actividades contribuyeron al perfil de egreso de la carrera.
+3. "resultadosAprendizaje": Redacta de forma precisa y amplia (70 a 110 palabras) los resultados de aprendizaje del perfil de egreso fortalecidos.
+4. "asignaturasMalla": Selecciona o complementa con 3 a 6 asignaturas reales de la malla curricular provista (con su codigo entre parentesis) explicando las tematicas especificas aplicadas en relacion con las actividades. PROHIBIDO incluir asignaturas de Trabajo de Integracion Curricular o Examen Complexivo.`
+          }
+        ],
+        temperature: 0.4,
+        max_completion_tokens: 4096,
+        top_p: 1,
+        reasoning_effort: 'medium',
+        stream: false
+      });
 
-        const rawJson = completion.choices[0]?.message?.content;
-        if (rawJson) {
-          const limpioJson = rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-          mejorado = JSON.parse(limpioJson);
-        }
-      } catch (err) {
-        // Si falla la llamada externa, se aplica enriquecimiento academico local
+      const rawJson = completion.choices[0]?.message?.content;
+      if (!rawJson) {
+        throw new Error('La respuesta del modelo llegó vacía');
       }
+      const limpioJson = rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+      mejorado = JSON.parse(limpioJson);
+    } catch (err) {
+      console.error('Error al mejorar formulario de convalidacion con Groq:', err.message);
+      throw errorHttp(`No se pudo mejorar el formulario con IA (Groq): ${err.message}`, 502);
     }
 
-    const institucionNombre =
-      aula.datosInstitucion?.razonSocial || formulario.entidadReceptora?.razonSocial || 'la entidad formadora';
-    const materiasFallback =
-      materiasSeleccionadas.length > 0
-        ? materiasSeleccionadas.join('\n')
-        : asignaturasOriginal;
+    const asignaturasFiltradas = String(mejorado?.asignaturasMalla || '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !ES_MATERIA_TITULACION(l))
+      .join('\n');
 
-    formulario.contenidoIa.resumenActividades =
-      mejorado?.resumenActividades ||
-      `${resumenOriginal.replace(/\.+$/, '')}. Esta actividad de convalidacion en ${institucionNombre} (${aula.horasRequeridas} horas) permitio ejecutar y consolidar de forma practica los contenidos tecnicos certificados en el respaldo adjunto.`;
-    formulario.contenidoIa.contribucionConocimientos =
-      mejorado?.contribucionConocimientos ||
-      `${contribucionOriginal.replace(/\.+$/, '')}. Asimismo, contribuyo directamente al perfil de egreso de ${aula.carrera || 'Desarrollo de Software'}, fortaleciendo la autonomia profesional, el criterio tecnico y la resolucion estructurada de problemas en entornos reales.`;
-    formulario.contenidoIa.resultadosAprendizaje =
-      mejorado?.resultadosAprendizaje ||
-      `${resultadosOriginal.replace(/\.+$/, '')}. Evidencia el logro de resultados de aprendizaje vinculados a la aplicacion de conocimientos especializados, gestion documentada de procesos y mejora continua de competencias profesionales.`;
-    formulario.contenidoIa.asignaturasMalla =
-      mejorado?.asignaturasMalla ||
-      (asignaturasOriginal ? `${asignaturasOriginal}\n${materiasFallback}`.trim() : materiasFallback);
+    const resumenActividades = String(mejorado?.resumenActividades || '').trim();
+    const contribucionConocimientos = String(mejorado?.contribucionConocimientos || '').trim();
+    const resultadosAprendizaje = String(mejorado?.resultadosAprendizaje || '').trim();
+
+    if (!resumenActividades || !contribucionConocimientos || !resultadosAprendizaje || !asignaturasFiltradas) {
+      throw errorHttp(
+        'La IA devolvió campos vacíos o incompletos al mejorar la Sección 6. Intenta nuevamente.',
+        502
+      );
+    }
+
+    formulario.contenidoIa.resumenActividades = resumenActividades;
+    formulario.contenidoIa.contribucionConocimientos = contribucionConocimientos;
+    formulario.contenidoIa.resultadosAprendizaje = resultadosAprendizaje;
+    formulario.contenidoIa.asignaturasMalla = asignaturasFiltradas;
     formulario.fechaGeneracionIa = new Date();
 
     await formulario.save();
