@@ -31,8 +31,7 @@ router.get('/aulas-virtuales', adminController.listarAulas);
 router.get('/aulas-virtuales/:id', adminController.obtenerAula);
 router.put('/aulas-virtuales/:id', adminController.actualizarAula);
 router.patch('/aulas-virtuales/:id/estado', adminController.cambiarEstadoAula);
-router.post('/aulas-virtuales/:id/estudiante', adminController.asignarEstudiante);
-router.delete('/aulas-virtuales/:id/estudiante', adminController.desasignarEstudiante);
+router.delete('/aulas-virtuales/:id', adminController.eliminarAula);
 
 // 3. Ingesta y Gestion de Fuentes Normativas RAG
 router.post('/fuentes', procesarArchivoNormativo, adminController.ingestarFuente);

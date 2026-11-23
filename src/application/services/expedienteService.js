@@ -2,6 +2,7 @@ import { AulaVirtual } from '../../infrastructure/database/models/AulaVirtual.js
 import { AulaConvalidacion } from '../../infrastructure/database/models/AulaConvalidacion.js';
 import { FormularioPendiente } from '../../infrastructure/database/models/FormularioPendiente.js';
 import { FormularioAprobacion } from '../../infrastructure/database/models/FormularioAprobacion.js';
+import { ActividadLaboral } from '../../infrastructure/database/models/ActividadLaboral.js';
 import { ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
 import { actividadService } from './actividadService.js';
 import { convalidacionService } from './convalidacionService.js';
@@ -104,7 +105,7 @@ function formatearDatosGeneralesFormulario(formulario, aula, esConvalidacionOpci
       tipoEntidad: er.tipoEntidad || emp.tipoInstitucion || 'Privada',
       responsable: er.responsable || emp.responsable || '',
       areaAsignada: er.areaAsignada || emp.areaAsignada || '',
-      cedulaResponsable: er.cedulaResponsable || '',
+      cedulaResponsable: er.cedulaResponsable || emp.cedulaResponsable || '',
       ...(esConvalidacion
         ? {
             campoAmplio: er.campoAmplio || emp.campoAmplio || '',
@@ -155,6 +156,52 @@ function formatearDatosGeneralesFormulario(formulario, aula, esConvalidacionOpci
   }
 
   return base;
+}
+
+async function actualizarFechasAulaSiCorresponde(aula, aulaId, esConvalidacion, datos) {
+  const nuevaFechaInicioRaw = datos.horarioSemanal?.fechaInicio ?? datos.fechaInicio;
+  const nuevaFechaFinRaw = datos.horarioSemanal?.fechaFin ?? datos.fechaFin;
+  if (nuevaFechaInicioRaw === undefined && nuevaFechaFinRaw === undefined) return;
+
+  const fInicio = nuevaFechaInicioRaw !== undefined ? new Date(nuevaFechaInicioRaw) : new Date(aula.fechaInicio);
+  const fFin = nuevaFechaFinRaw !== undefined ? new Date(nuevaFechaFinRaw) : new Date(aula.fechaFin);
+
+  if (isNaN(fInicio.getTime()) || isNaN(fFin.getTime())) {
+    throw errorHttp('Las fechas de inicio y fin del aula deben tener un formato valido (YYYY-MM-DD)', 400);
+  }
+
+  if (fFin <= fInicio) {
+    throw errorHttp('La fecha de fin del aula debe ser posterior a la fecha de inicio', 400);
+  }
+
+  if (!esConvalidacion) {
+    const regLab = await ActividadLaboral.findOne({ aulaVirtual: aulaId });
+    const acts = regLab?.actividades || [];
+    if (acts.length > 0) {
+      const fechasIso = acts.map((a) => new Date(a.fecha).toISOString().split('T')[0]).sort();
+      const minFecha = fechasIso[0];
+      const maxFecha = fechasIso[fechasIso.length - 1];
+      const nuevoInicioStr = fInicio.toISOString().split('T')[0];
+      const nuevoFinStr = fFin.toISOString().split('T')[0];
+
+      if (nuevoInicioStr > minFecha) {
+        throw errorHttp(
+          `La fecha de inicio (${nuevoInicioStr}) no puede ser posterior a la actividad ya registrada el ${minFecha}`,
+          400
+        );
+      }
+      if (nuevoFinStr < maxFecha) {
+        throw errorHttp(
+          `La fecha de fin (${nuevoFinStr}) no puede ser anterior a la actividad ya registrada el ${maxFecha}`,
+          400
+        );
+      }
+    }
+  }
+
+  aula.fechaInicio = fInicio;
+  aula.fechaFin = fFin;
+  await aula.save();
 }
 
 export const expedienteService = {
@@ -302,6 +349,8 @@ export const expedienteService = {
       formulario.creditosAprobados = Number(creditos);
     }
 
+    await actualizarFechasAulaSiCorresponde(aula, aulaId, esConvalidacion, datos);
+
     if (datos.horarioSemanal) {
       const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
         ? formulario.horarioSemanal.toObject()
@@ -358,6 +407,8 @@ export const expedienteService = {
     if (creditos !== undefined) {
       formulario.creditosAprobados = Number(creditos);
     }
+
+    await actualizarFechasAulaSiCorresponde(aula, aulaId, esConvalidacion, datos);
 
     if (datos.horarioSemanal) {
       const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'

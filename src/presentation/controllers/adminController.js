@@ -148,6 +148,15 @@ export const adminController = {
     }
   },
 
+  async eliminarAula(req, res, next) {
+    try {
+      const resultado = await adminOrchestrator.eliminarAula(req.params.id);
+      res.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async cambiarEstadoAula(req, res, next) {
     try {
       const estado = req.body.estado || req.query.estado;
@@ -155,33 +164,6 @@ export const adminController = {
       res.json({
         success: true,
         message: `Estado del aula virtual actualizado a '${estado}'`,
-        datos: aula
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async asignarEstudiante(req, res, next) {
-    try {
-      const estudianteId = req.body.estudianteId || req.body.estudiante;
-      const aula = await adminOrchestrator.asignarEstudiante(req.params.id, estudianteId);
-      res.json({
-        success: true,
-        message: 'Estudiante asignado al aula virtual exitosamente',
-        datos: aula
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async desasignarEstudiante(req, res, next) {
-    try {
-      const aula = await adminOrchestrator.desasignarEstudiante(req.params.id);
-      res.json({
-        success: true,
-        message: 'Estudiante desvinculado del aula virtual exitosamente',
         datos: aula
       });
     } catch (error) {

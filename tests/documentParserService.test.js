@@ -77,6 +77,10 @@ describe('Pruebas del servicio de analisis de documentos normativos (documentPar
       Las actividades que se tiene previsto que realizará el estudiante durante las prácticas serán:
       - Desarrollo de modulos backend en Express
       Atentamente,
+      Ing. Carlos Mendoza
+      1711223344
+      0998765432
+      cmendoza@techsolutions.ec
     `;
 
     const textoSolicitudValida = `
@@ -113,6 +117,7 @@ describe('Pruebas del servicio de analisis de documentos normativos (documentPar
       const res = await documentParserService.validarDocumentosCreacionAula(pdfCarta, pdfSolicitud, estudianteDb);
 
       expect(res.carta.totalHoras).toBe(80);
+      expect(res.carta.cedulaResponsable).toBe('1711223344');
       expect(res.carta.razonSocial).toBe('TECH SOLUTIONS S.A.');
       expect(res.solicitud.cedulaEstudiante).toBe('1723456789');
     });

@@ -128,6 +128,7 @@ export const aulaService = {
         responsable: carta.responsable || datos.responsable || '',
         cargo: carta.cargoResponsable || datos.cargo || '',
         cargoEstudiante: carta.cargoEstudiante || datos.cargoEstudiante || '',
+        cedulaResponsable: carta.cedulaResponsable || datos.cedulaResponsable || '',
         horasDiarias: carta.horasDiarias || 8,
         totalHorasPactadas: carta.totalHoras,
         areaAsignada: carta.areaAsignada || ''
@@ -185,7 +186,8 @@ export const aulaService = {
           entidadReceptora: {
             razonSocial: datosEmpresa.razonSocial || '',
             areaAsignada: datosEmpresa.areaAsignada || '',
-            responsable: datosEmpresa.responsable || ''
+            responsable: datosEmpresa.responsable || '',
+            cedulaResponsable: datosEmpresa.cedulaResponsable || ''
           },
           horarioSemanal: {
             horaInicio: '08:00',
@@ -417,38 +419,23 @@ export const aulaService = {
     return await this.obtenerAulaPorId(id);
   },
 
-  async asignarEstudiante(aulaId, estudianteId) {
-    const { aula, esConvalidacion } = await buscarAulaPorIdCualquierTipo(aulaId);
+  async eliminarAula(id) {
+    const { aula, esConvalidacion } = await buscarAulaPorIdCualquierTipo(id);
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
-    const alumno = await Usuario.findById(estudianteId);
-    if (!alumno || alumno.rol !== ROLES.ESTUDIANTE) {
-      throw errorHttp('El usuario no existe o no tiene rol de estudiante', 400);
+    if (esConvalidacion) {
+      await AulaConvalidacion.findByIdAndDelete(id);
+      await Promise.all([
+        FormularioPendiente.deleteMany({ aulaVirtual: id }),
+        FormularioAprobacion.deleteMany({ aulaVirtual: id })
+      ]);
+    } else {
+      await AulaVirtual.findByIdAndDelete(id);
     }
 
-    if (!esConvalidacion) {
-      const aulaActiva = await AulaVirtual.findOne({
-        estudiante: alumno._id,
-        modalidad: aula.modalidad,
-        estado: ESTADOS_AULA.ABIERTA,
-        _id: { $ne: aula._id }
-      });
-      if (aulaActiva) {
-        throw errorHttp('El estudiante ya esta asignado a otra aula activa en esta misma modalidad', 409);
-      }
-    }
-
-    aula.estudiante = alumno._id;
-    await aula.save();
-    return await this.obtenerAulaPorId(aulaId);
-  },
-
-  async desasignarEstudiante(aulaId) {
-    const { aula } = await buscarAulaPorIdCualquierTipo(aulaId);
-    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
-
-    aula.estudiante = null;
-    await aula.save();
-    return await this.obtenerAulaPorId(aulaId);
+    return {
+      success: true,
+      message: 'Aula virtual y todos sus registros asociados fueron eliminados en cascada'
+    };
   }
 };

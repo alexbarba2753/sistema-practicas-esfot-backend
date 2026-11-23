@@ -427,6 +427,88 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       expect(resultado.estado).toBe('observado');
       expect(mockFormulario.entidadReceptora.razonSocial).toBe('Empresa Corregida S.A.');
     });
+
+    it('debe rechazar el cambio de fechaInicio o fechaFin del aula si deja actividades registradas fuera del rango', async () => {
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
+        _id: 'aula101',
+        estudiante: 'est123',
+        modalidad: 'laboral',
+        fechaInicio: new Date('2026-03-01T00:00:00Z'),
+        fechaFin: new Date('2026-04-01T00:00:00Z'),
+        expedienteEntregado: false,
+        save: jest.fn().mockResolvedValue(true)
+      });
+
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        _id: 'form101',
+        aulaVirtual: 'aula101',
+        estudiante: 'est123',
+        estado: 'borrador',
+        entidadReceptora: { toObject: () => ({}) },
+        horarioSemanal: { toObject: () => ({}) },
+        contenidoIa: { toObject: () => ({}) },
+        save: jest.fn().mockResolvedValue(true)
+      });
+
+      jest.spyOn(ActividadLaboral, 'findOne').mockResolvedValue({
+        aulaVirtual: 'aula101',
+        actividades: [{ fecha: new Date('2026-03-03T00:00:00Z'), horas: 4 }]
+      });
+
+      await expect(
+        estudianteOrchestrator.actualizarFormularioPendiente('aula101', 'est123', {
+          horarioSemanal: { fechaInicio: '2026-03-05' }
+        })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: expect.stringContaining('2026-03-03')
+      });
+
+      await expect(
+        estudianteOrchestrator.actualizarFormularioPendiente('aula101', 'est123', {
+          horarioSemanal: { fechaFin: '2026-03-02' }
+        })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: expect.stringContaining('2026-03-03')
+      });
+    });
+
+    it('debe permitir ampliar fechaFin del aula aunque ya existan actividades registradas dentro del rango', async () => {
+      const mockAula = {
+        _id: 'aula101',
+        estudiante: 'est123',
+        modalidad: 'laboral',
+        fechaInicio: new Date('2026-03-01T00:00:00Z'),
+        fechaFin: new Date('2026-04-01T00:00:00Z'),
+        expedienteEntregado: false,
+        save: jest.fn().mockResolvedValue(true)
+      };
+      jest.spyOn(AulaVirtual, 'findById').mockResolvedValue(mockAula);
+
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue({
+        _id: 'form101',
+        aulaVirtual: 'aula101',
+        estudiante: 'est123',
+        estado: 'borrador',
+        entidadReceptora: { toObject: () => ({}) },
+        horarioSemanal: { toObject: () => ({}) },
+        contenidoIa: { toObject: () => ({}) },
+        save: jest.fn().mockResolvedValue(true)
+      });
+
+      jest.spyOn(ActividadLaboral, 'findOne').mockResolvedValue({
+        aulaVirtual: 'aula101',
+        actividades: [{ fecha: new Date('2026-03-03T00:00:00Z'), horas: 4 }]
+      });
+
+      const res = await estudianteOrchestrator.actualizarFormularioPendiente('aula101', 'est123', {
+        horarioSemanal: { fechaFin: '2026-05-15' }
+      });
+
+      expect(mockAula.save).toHaveBeenCalledTimes(1);
+      expect(new Date(res.horarioSemanal.fechaFin).toISOString().split('T')[0]).toBe('2026-05-15');
+    });
   });
 
   describe('Validaciones previas para generacion de borrador con IA', () => {

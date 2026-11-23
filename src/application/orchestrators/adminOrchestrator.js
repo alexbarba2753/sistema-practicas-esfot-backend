@@ -64,14 +64,9 @@ export const adminOrchestrator = {
     return await aulaService.cambiarEstadoAula(id, estado);
   },
 
-  // asigna formalmente a un estudiante al aula virtual para empezar sus practicas
-  async asignarEstudiante(aulaId, estudianteId) {
-    return await aulaService.asignarEstudiante(aulaId, estudianteId);
-  },
-
-  // quita al estudiante asignado si hubo algun cambio de aula o cancelacion
-  async desasignarEstudiante(aulaId) {
-    return await aulaService.desasignarEstudiante(aulaId);
+  // elimina un aula virtual y en cascada sus actividades y formularios asociados
+  async eliminarAula(id) {
+    return await aulaService.eliminarAula(id);
   },
 
   // lista los expedientes entregados por tutores para dictamen y resolucion de la comision

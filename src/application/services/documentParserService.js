@@ -297,7 +297,8 @@ export const documentParserService = {
       esCartaAceptacion: false,
       razonSocial: '',
       responsable: '',
-                    cargoResponsable: '',
+      cargoResponsable: '',
+      cedulaResponsable: '',
       areaAsignada: '',
       cargoEstudiante: '',
       horasDiarias: 8,
@@ -382,13 +383,25 @@ export const documentParserService = {
     datos.fechaInicio = rango.fechaInicio;
     datos.fechaFin = rango.fechaFin;
 
-    // 8. Extraer actividades previstas
+    // 8. Extraer actividades previstas y cedula del responsable (despues de Atentamente,)
     const matchActividades = texto.match(/actividades que se tiene previsto[\s\S]*?ser[aá]n:\s*([\s\S]*?)\bAtentamente\b/i);
     if (matchActividades && matchActividades[1]) {
       datos.actividadesPrevistas = matchActividades[1]
         .split(/\r?\n/)
         .map((l) => l.replace(/^[-•*\d.)\s]+/, '').trim())
         .filter((l) => l.length >= 5 && !/^[.…\s]+$/.test(l));
+    }
+
+    const matchFirma = texto.match(/\bAtentamente\b[\s\S]*/i);
+    if (matchFirma) {
+      const bloqueFirma = matchFirma[0];
+      const matchCedResp = bloqueFirma.match(/\b(\d{9,10})\b/);
+      if (matchCedResp && matchCedResp[1]) {
+        const candidata = normalizarCedula(matchCedResp[1]);
+        if (candidata !== datos.cedulaEstudiante) {
+          datos.cedulaResponsable = candidata;
+        }
+      }
     }
 
     return datos;

@@ -78,6 +78,7 @@ const aulaVirtualSchema = new mongoose.Schema(
       responsable: { type: String, default: '' },
       cargo: { type: String, default: '' },
       cargoEstudiante: { type: String, default: '' },
+      cedulaResponsable: { type: String, default: '' },
       horasDiarias: { type: Number, default: 8 },
       totalHorasPactadas: { type: Number, default: null },
       areaAsignada: { type: String, default: '' }
@@ -88,5 +89,34 @@ const aulaVirtualSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+
+async function eliminarDependenciasAula(aulaId) {
+  if (!aulaId) return;
+  const modelos = [
+    'ActividadLaboral',
+    'ActividadComunitaria',
+    'ConvalidacionCertificado',
+    'FormularioPendiente',
+    'FormularioAprobacion'
+  ];
+
+  await Promise.all(
+    modelos.map(async (nombre) => {
+      if (mongoose.models[nombre]) {
+        await mongoose.models[nombre].deleteMany({ aulaVirtual: aulaId });
+      }
+    })
+  );
+}
+
+aulaVirtualSchema.pre('findOneAndDelete', async function () {
+  const doc = await this.model.findOne(this.getFilter()).select('_id');
+  if (doc) await eliminarDependenciasAula(doc._id);
+});
+
+aulaVirtualSchema.pre('deleteOne', { document: false, query: true }, async function () {
+  const doc = await this.model.findOne(this.getFilter()).select('_id');
+  if (doc) await eliminarDependenciasAula(doc._id);
+});
 
 export const AulaVirtual = mongoose.model('AulaVirtual', aulaVirtualSchema);
