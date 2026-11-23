@@ -33,11 +33,11 @@ export function crearDefinicionFormulario() {
     },
     documentacionSoporte: {
       type: String,
-      default: ''
+      default: undefined
     },
     seccion1y2Marcas: {
       type: [String],
-      default: []
+      default: undefined
     },
     entidadReceptora: {
       razonSocial: { type: String, default: '' },
@@ -50,36 +50,38 @@ export function crearDefinicionFormulario() {
       tipoEntidad: { type: String, default: 'Privada' },
       responsable: { type: String, default: '' },
       areaAsignada: { type: String, default: '' },
-      cedulaResponsable: { type: String, default: '' },
-      campoAmplio: { type: String, default: '' },
-      campoEspecifico: { type: String, default: '' },
-      codigoProyecto: { type: String, default: '' },
-      nombreProyecto: { type: String, default: '' }
+      cedulaResponsable: { type: String, default: undefined },
+      campoAmplio: { type: String, default: undefined },
+      campoEspecifico: { type: String, default: undefined },
+      codigoProyecto: { type: String, default: undefined },
+      nombreProyecto: { type: String, default: undefined }
     },
     creditosAprobados: {
       type: Number,
-      default: 0
+      default: undefined
     },
     fechaDeclaracion: {
       type: Date,
-      default: null
+      default: undefined
     },
     horarioSemanal: {
-      horaInicio: { type: String, default: '08:00' },
-      horaFin: { type: String, default: '16:30' },
-      horasSemanales: { type: Number, default: 40 },
-      observacionesFechas: { type: String, default: '' }
+      type: {
+        horaInicio: { type: String, default: '08:00' },
+        horaFin: { type: String, default: '16:30' },
+        horasSemanales: { type: Number, default: 40 },
+        observacionesFechas: { type: String, default: '' }
+      },
+      default: undefined
     },
     contenidoIa: {
-      asignaturasUtilidad: { type: String, default: '' },
-      principalesActividades: { type: String, default: '' },
-      habilidadesAdquiridas: { type: String, default: '' },
-      observacionesTemas: { type: String, default: '' },
-      resumenActividades: { type: String, default: '' },
-      contribucionConocimientos: { type: String, default: '' },
-      resultadosAprendizaje: { type: String, default: '' },
-      asignaturasMalla: { type: String, default: '' },
-      informeGeneradoTexto: { type: String, default: '' }
+      asignaturasUtilidad: { type: String, default: undefined },
+      principalesActividades: { type: String, default: undefined },
+      habilidadesAdquiridas: { type: String, default: undefined },
+      observacionesTemas: { type: String, default: undefined },
+      resumenActividades: { type: String, default: undefined },
+      contribucionConocimientos: { type: String, default: undefined },
+      resultadosAprendizaje: { type: String, default: undefined },
+      asignaturasMalla: { type: String, default: undefined }
     },
     // Seccion 6 del F_AA_119 / Seccion 9 del FCP_001A (Seguimiento obligatorio del Tutor EPN)
     seguimientoTutor: {
@@ -98,7 +100,7 @@ export function crearDefinicionFormulario() {
         aportaPerfilEgreso: { type: Boolean, default: true },
         recomiendaAprobacion: { type: Boolean, default: true }
       },
-      unidadAcademica: { type: String, default: 'ESFOT' },
+      unidadAcademica: { type: String, default: undefined },
       observacionesMejora: { type: String, default: '' },
       horasValidadasSugeridas: { type: Number, default: 0 },
       completadoPorTutor: { type: Boolean, default: false },
@@ -107,8 +109,8 @@ export function crearDefinicionFormulario() {
     // Seccion 7 del F_AA_119 / Seccion 10 del FCP_001A (Dictamen del Administrador)
     resolucionComision: {
       avalaAprobacion: { type: Boolean, default: null },
-      horasAprobadasLaborales: { type: Number, default: null },
-      horasAprobadasComunitarias: { type: Number, default: null },
+      horasAprobadasLaborales: { type: Number, default: undefined },
+      horasAprobadasComunitarias: { type: Number, default: undefined },
       observacionesComision: { type: String, default: '' },
       fechaResolucion: { type: Date, default: null },
       revisadoPorAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null }

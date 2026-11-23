@@ -8,7 +8,7 @@ import { actividadService } from './actividadService.js';
 import { excelService } from './excelService.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 
-const CAMPOS_ENTIDAD_F_AA_119 = [
+const CAMPOS_ENTIDAD_LABORAL = [
   'razonSocial',
   'ruc',
   'direccion',
@@ -19,12 +19,93 @@ const CAMPOS_ENTIDAD_F_AA_119 = [
   'tipoEntidad',
   'responsable',
   'areaAsignada',
-  'cedulaResponsable',
+  'cedulaResponsable'
+];
+
+const CAMPOS_ENTIDAD_CONVALIDACION = [
+  'razonSocial',
+  'ruc',
+  'direccion',
+  'correo',
+  'ciudad',
+  'telefono',
+  'celular',
+  'tipoEntidad',
+  'responsable',
+  'areaAsignada',
   'campoAmplio',
   'campoEspecifico',
   'codigoProyecto',
   'nombreProyecto'
 ];
+
+const CAMPOS_IA_LABORAL = [
+  'asignaturasUtilidad',
+  'principalesActividades',
+  'habilidadesAdquiridas',
+  'observacionesTemas'
+];
+
+const CAMPOS_IA_CONVALIDACION = [
+  'resumenActividades',
+  'contribucionConocimientos',
+  'resultadosAprendizaje',
+  'asignaturasMalla'
+];
+
+function aplicarCamposPorTipoAula(formulario, esConvalidacion, datos) {
+  if (esConvalidacion && datos.documentacionSoporte !== undefined) {
+    formulario.documentacionSoporte = String(datos.documentacionSoporte).trim();
+  }
+
+  if (datos.entidadReceptora) {
+    const actual = typeof formulario.entidadReceptora?.toObject === 'function'
+      ? formulario.entidadReceptora.toObject()
+      : (formulario.entidadReceptora || {});
+    const permitidos = esConvalidacion ? CAMPOS_ENTIDAD_CONVALIDACION : CAMPOS_ENTIDAD_LABORAL;
+    const filtrado = {};
+    for (const campo of permitidos) {
+      if (datos.entidadReceptora[campo] !== undefined) {
+        filtrado[campo] = datos.entidadReceptora[campo];
+      }
+    }
+    formulario.entidadReceptora = { ...actual, ...filtrado };
+  }
+
+  if (!esConvalidacion) {
+    const creditos = datos.creditosAprobados ?? datos.datosPracticante?.creditosAprobados;
+    if (creditos !== undefined) {
+      formulario.creditosAprobados = Number(creditos);
+    }
+
+    if (datos.horarioSemanal) {
+      const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
+        ? formulario.horarioSemanal.toObject()
+        : (formulario.horarioSemanal || {});
+      const horarioFiltrado = {};
+      for (const campo of ['horaInicio', 'horaFin', 'horasSemanales', 'observacionesFechas']) {
+        if (datos.horarioSemanal[campo] !== undefined) {
+          horarioFiltrado[campo] = datos.horarioSemanal[campo];
+        }
+      }
+      formulario.horarioSemanal = { ...actualHorario, ...horarioFiltrado };
+    }
+  }
+
+  if (datos.contenidoIa) {
+    const actualIa = typeof formulario.contenidoIa?.toObject === 'function'
+      ? formulario.contenidoIa.toObject()
+      : (formulario.contenidoIa || {});
+    const permitidosIa = esConvalidacion ? CAMPOS_IA_CONVALIDACION : CAMPOS_IA_LABORAL;
+    const iaFiltrado = {};
+    for (const campo of permitidosIa) {
+      if (datos.contenidoIa[campo] !== undefined) {
+        iaFiltrado[campo] = datos.contenidoIa[campo];
+      }
+    }
+    formulario.contenidoIa = { ...actualIa, ...iaFiltrado };
+  }
+}
 
 async function buscarAulaPorId(aulaId, { populateEstudiante = false, populateDocente = false } = {}) {
   const aplicarPopulate = (query) => {
@@ -324,49 +405,8 @@ export const expedienteService = {
       throw errorHttp('El expediente ya fue entregado a revision; no se puede modificar el formulario', 403);
     }
 
-    if (datos.documentacionSoporte !== undefined) {
-      formulario.documentacionSoporte = String(datos.documentacionSoporte).trim();
-    }
-
-    if (datos.entidadReceptora) {
-      const actual = typeof formulario.entidadReceptora?.toObject === 'function'
-        ? formulario.entidadReceptora.toObject()
-        : (formulario.entidadReceptora || {});
-      const filtrado = {};
-      for (const campo of CAMPOS_ENTIDAD_F_AA_119) {
-        if (datos.entidadReceptora[campo] !== undefined) {
-          filtrado[campo] = datos.entidadReceptora[campo];
-        }
-      }
-      formulario.entidadReceptora = { ...actual, ...filtrado };
-    }
-
-    const creditos = datos.creditosAprobados ?? datos.datosPracticante?.creditosAprobados;
-    if (creditos !== undefined) {
-      formulario.creditosAprobados = Number(creditos);
-    }
-
     await actualizarFechasAulaSiCorresponde(aula, aulaId, esConvalidacion, datos);
-
-    if (datos.horarioSemanal) {
-      const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
-        ? formulario.horarioSemanal.toObject()
-        : (formulario.horarioSemanal || {});
-      const horarioFiltrado = {};
-      for (const campo of ['horaInicio', 'horaFin', 'horasSemanales', 'observacionesFechas']) {
-        if (datos.horarioSemanal[campo] !== undefined) {
-          horarioFiltrado[campo] = datos.horarioSemanal[campo];
-        }
-      }
-      formulario.horarioSemanal = { ...actualHorario, ...horarioFiltrado };
-    }
-
-    if (datos.contenidoIa) {
-      const actualIa = typeof formulario.contenidoIa?.toObject === 'function'
-        ? formulario.contenidoIa.toObject()
-        : (formulario.contenidoIa || {});
-      formulario.contenidoIa = { ...actualIa, ...datos.contenidoIa };
-    }
+    aplicarCamposPorTipoAula(formulario, esConvalidacion, datos);
 
     formulario.ultimaEdicionEstudiante = new Date();
     await formulario.save();
@@ -387,45 +427,8 @@ export const expedienteService = {
       throw errorHttp('No se encontro el formulario pendiente del aula', 404);
     }
 
-    if (datos.entidadReceptora) {
-      const actual = typeof formulario.entidadReceptora?.toObject === 'function'
-        ? formulario.entidadReceptora.toObject()
-        : (formulario.entidadReceptora || {});
-      const filtrado = {};
-      for (const campo of CAMPOS_ENTIDAD_F_AA_119) {
-        if (datos.entidadReceptora[campo] !== undefined) {
-          filtrado[campo] = datos.entidadReceptora[campo];
-        }
-      }
-      formulario.entidadReceptora = { ...actual, ...filtrado };
-    }
-
-    const creditos = datos.creditosAprobados ?? datos.datosPracticante?.creditosAprobados;
-    if (creditos !== undefined) {
-      formulario.creditosAprobados = Number(creditos);
-    }
-
     await actualizarFechasAulaSiCorresponde(aula, aulaId, esConvalidacion, datos);
-
-    if (datos.horarioSemanal) {
-      const actualHorario = typeof formulario.horarioSemanal?.toObject === 'function'
-        ? formulario.horarioSemanal.toObject()
-        : (formulario.horarioSemanal || {});
-      const horarioFiltrado = {};
-      for (const campo of ['horaInicio', 'horaFin', 'horasSemanales', 'observacionesFechas']) {
-        if (datos.horarioSemanal[campo] !== undefined) {
-          horarioFiltrado[campo] = datos.horarioSemanal[campo];
-        }
-      }
-      formulario.horarioSemanal = { ...actualHorario, ...horarioFiltrado };
-    }
-
-    if (datos.contenidoIa) {
-      const actualIa = typeof formulario.contenidoIa?.toObject === 'function'
-        ? formulario.contenidoIa.toObject()
-        : (formulario.contenidoIa || {});
-      formulario.contenidoIa = { ...actualIa, ...datos.contenidoIa };
-    }
+    aplicarCamposPorTipoAula(formulario, esConvalidacion, datos);
 
     await formulario.save();
     return formatearDatosGeneralesFormulario(formulario, aula, esConvalidacion);

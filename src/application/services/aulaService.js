@@ -182,7 +182,9 @@ export const aulaService = {
           aulaVirtual: nuevaAula._id,
           estudiante: alumno._id,
           modalidad,
+          tipoAula: 'laboral',
           totalHoras: 0,
+          creditosAprobados: 0,
           entidadReceptora: {
             razonSocial: datosEmpresa.razonSocial || '',
             areaAsignada: datosEmpresa.areaAsignada || '',
@@ -193,6 +195,12 @@ export const aulaService = {
             horaInicio: '08:00',
             horaFin: '16:30',
             horasSemanales: datosEmpresa.horasDiarias ? datosEmpresa.horasDiarias * 5 : 40
+          },
+          contenidoIa: {
+            asignaturasUtilidad: '',
+            principalesActividades: '',
+            habilidadesAdquiridas: '',
+            observacionesTemas: ''
           }
         }
       },
