@@ -243,7 +243,8 @@ export const asistenteIaService = {
 
     let actividades = [];
     if (aula.modalidad === MODALIDADES.LABORAL) {
-      actividades = await ActividadLaboral.find({ aulaVirtual: aulaId }).sort({ fecha: 1 });
+      const registro = await ActividadLaboral.findOne({ aulaVirtual: aulaId });
+      actividades = [...(registro?.actividades || [])].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
     } else {
       actividades = await ActividadComunitaria.find({ aulaVirtual: aulaId }).sort({ fecha: 1 });
     }

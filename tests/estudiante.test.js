@@ -253,11 +253,16 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
     });
 
     it('debe rechazar la actualizacion de jornada laboral (actualizarActividadLaboral) con HTTP 403 Forbidden cuando el expediente ya fue entregado', async () => {
-      jest.spyOn(ActividadLaboral, 'findById').mockResolvedValue({
-        _id: 'act101',
+      jest.spyOn(ActividadLaboral, 'findOne').mockResolvedValue({
+        _id: 'docLab101',
         estudiante: 'est123',
         aulaVirtual: 'aula101',
-        estadoAprobacion: 'pendiente'
+        actividades: [
+          {
+            _id: 'act101',
+            estadoAprobacion: 'pendiente'
+          }
+        ]
       });
       jest.spyOn(AulaVirtual, 'findById').mockResolvedValue({
         _id: 'aula101',
@@ -516,10 +521,11 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
         horasAprobadas: 80,
         cumplioRequisito: true
       });
-      jest.spyOn(ActividadLaboral, 'find').mockReturnValue({
-        sort: jest.fn().mockResolvedValue([
-          { descripcion: 'Desarrollo de APIs REST con Express y MongoDB', horas: 80 }
-        ])
+      jest.spyOn(ActividadLaboral, 'findOne').mockResolvedValue({
+        aulaVirtual: 'aula1',
+        actividades: [
+          { fecha: new Date('2026-04-06'), descripcion: 'Desarrollo de APIs REST con Express y MongoDB', horas: 80 }
+        ]
       });
 
       const res = await asistenteIaService.generarBorradorInforme('aula1', 'est1');

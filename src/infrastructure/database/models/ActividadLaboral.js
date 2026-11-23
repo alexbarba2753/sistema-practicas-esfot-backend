@@ -1,18 +1,8 @@
 import mongoose from 'mongoose';
 import { ESTADOS_ACTIVIDAD } from '../../../domain/constants/practicasConstants.js';
 
-const actividadLaboralSchema = new mongoose.Schema(
+const jornadaLaboralSchema = new mongoose.Schema(
   {
-    estudiante: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Usuario',
-      required: true
-    },
-    aulaVirtual: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'AulaVirtual',
-      required: true
-    },
     fecha: {
       type: Date,
       required: [true, 'La fecha de la actividad es obligatoria']
@@ -47,6 +37,31 @@ const actividadLaboralSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ''
+    }
+  },
+  {
+    timestamps: true
+  }
+);
+
+const actividadLaboralSchema = new mongoose.Schema(
+  {
+    aulaVirtual: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AulaVirtual',
+      required: true,
+      unique: true,
+      index: true
+    },
+    estudiante: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario',
+      required: true,
+      index: true
+    },
+    actividades: {
+      type: [jornadaLaboralSchema],
+      default: []
     }
   },
   {

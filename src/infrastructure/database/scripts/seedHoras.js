@@ -110,18 +110,21 @@ export async function sembrarDatosDemo() {
       fechaAct.setDate(fechaAct.getDate() + i);
 
       actividadesParaInsertar.push({
-        estudiante: estudiante._id,
-        aulaVirtual: aulaLaboral._id,
         fecha: fechaAct,
+        horaEntrada: '08:00',
+        horaSalida: '16:00',
         horas: 8,
         descripcion: TAREAS_LABORALES[i],
-        estado: ESTADOS_ACTIVIDAD.APROBADA,
-        evaluadoPor: docente._id,
-        fechaEvaluacion: new Date()
+        estadoAprobacion: ESTADOS_ACTIVIDAD.APROBADO,
+        observacionesDocente: 'Aprobada en carga demo'
       });
     }
 
-    await ActividadLaboral.insertMany(actividadesParaInsertar);
+    await ActividadLaboral.create({
+      aulaVirtual: aulaLaboral._id,
+      estudiante: estudiante._id,
+      actividades: actividadesParaInsertar
+    });
     console.log(`Insertadas 30 actividades laborales aprobadas (240 horas en total).`);
 
     await disconnectDB();

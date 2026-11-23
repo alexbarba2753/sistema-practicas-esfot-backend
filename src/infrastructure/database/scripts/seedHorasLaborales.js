@@ -79,7 +79,8 @@ async function obtenerAulaObjetivo(aulaIdArg) {
 }
 
 async function ejecutarSeed(aula) {
-  const actividades = await ActividadLaboral.find({ aulaVirtual: aula._id });
+  let registro = await ActividadLaboral.findOne({ aulaVirtual: aula._id });
+  const actividades = registro?.actividades || [];
   const fechasOcupadas = new Set(
     actividades.map((a) => new Date(a.fecha).toISOString().split('T')[0])
   );
@@ -112,8 +113,6 @@ async function ejecutarSeed(aula) {
       const horaSalida = calcularHoraSalida(horaEntrada, horasJornada);
 
       nuevasActividades.push({
-        estudiante: aula.estudiante,
-        aulaVirtual: aula._id,
         fecha: new Date(cursor.getTime()),
         horaEntrada,
         horaSalida,
@@ -136,7 +135,17 @@ async function ejecutarSeed(aula) {
     return;
   }
 
-  await ActividadLaboral.insertMany(nuevasActividades);
+  if (!registro) {
+    registro = new ActividadLaboral({
+      aulaVirtual: aula._id,
+      estudiante: aula.estudiante,
+      actividades: []
+    });
+  }
+
+  registro.actividades.push(...nuevasActividades);
+  await registro.save();
+
   const totalInsertado = nuevasActividades.reduce((acc, a) => acc + a.horas, 0);
   console.log(
     `[Seed] Insertadas ${nuevasActividades.length} jornadas (${totalInsertado}h) en el aula "${aula.nombre}" (${aula._id}).`
@@ -147,13 +156,26 @@ async function ejecutarSeed(aula) {
 }
 
 async function ejecutarRollback(aula) {
-  const resultado = await ActividadLaboral.deleteMany({
-    aulaVirtual: aula._id,
-    observacionesDocente: /^\[SEED\]/
-  });
+  const registro = await ActividadLaboral.findOne({ aulaVirtual: aula._id });
+  if (!registro || !registro.actividades.length) {
+    console.log(
+      `[Rollback] Eliminadas 0 jornadas generadas por el seed en el aula "${aula.nombre}" (${aula._id}). Las actividades manuales se conservaron intactas.`
+    );
+    return;
+  }
+
+  const totalAntes = registro.actividades.length;
+  registro.actividades = registro.actividades.filter((a) => !/^\[SEED\]/.test(a.observacionesDocente || ''));
+  const eliminadas = totalAntes - registro.actividades.length;
+
+  if (registro.actividades.length === 0) {
+    await ActividadLaboral.deleteOne({ _id: registro._id });
+  } else {
+    await registro.save();
+  }
 
   console.log(
-    `[Rollback] Eliminadas ${resultado.deletedCount} jornadas generadas por el seed en el aula "${aula.nombre}" (${aula._id}). Las actividades manuales se conservaron intactas.`
+    `[Rollback] Eliminadas ${eliminadas} jornadas generadas por el seed en el aula "${aula.nombre}" (${aula._id}). Las actividades manuales se conservaron intactas.`
   );
 }
 

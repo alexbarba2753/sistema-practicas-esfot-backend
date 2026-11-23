@@ -14,7 +14,8 @@ export const actividadService = {
 
     let actividades = [];
     if (aula.modalidad === MODALIDADES.LABORAL) {
-      actividades = await ActividadLaboral.find({ aulaVirtual: aulaId });
+      const registro = await ActividadLaboral.findOne({ aulaVirtual: aulaId });
+      actividades = registro?.actividades || [];
     } else {
       actividades = await ActividadComunitaria.find({ aulaVirtual: aulaId });
     }
@@ -93,37 +94,41 @@ export const actividadService = {
     const resumenPrevio = await this.calcularHorasAula(aulaId);
     const datosValidados = validarJornadaLaboral(datos, aula, resumenPrevio);
 
-    // Prevencion de registros duplicados en el mismo dia calendario
-    const anio = datosValidados.fechaObj.getUTCFullYear();
-    const mes = datosValidados.fechaObj.getUTCMonth();
-    const dia = datosValidados.fechaObj.getUTCDate();
-    const inicioDia = new Date(Date.UTC(anio, mes, dia, 0, 0, 0, 0));
-    const finDia = new Date(Date.UTC(anio, mes, dia, 23, 59, 59, 999));
+    // Prevencion de registros duplicados en el mismo dia calendario dentro del aula
+    const fechaIsoNueva = datosValidados.fechaObj.toISOString().split('T')[0];
 
-    const bitacoraExistente = await ActividadLaboral.findOne({
-      aulaVirtual: aulaId,
-      fecha: { $gte: inicioDia, $lte: finDia }
-    });
+    let registro = await ActividadLaboral.findOne({ aulaVirtual: aulaId });
+    const duplicada = (registro?.actividades || []).some(
+      (a) => new Date(a.fecha).toISOString().split('T')[0] === fechaIsoNueva
+    );
 
-    if (bitacoraExistente) {
+    if (duplicada) {
       throw errorHttp(
-        `Ya existe una jornada laboral registrada para la fecha ${datosValidados.fechaObj.toISOString().split('T')[0]}`,
+        `Ya existe una jornada laboral registrada para la fecha ${fechaIsoNueva}`,
         400
       );
     }
 
-    const nuevaActividad = new ActividadLaboral({
-      estudiante: estudianteId,
-      aulaVirtual: aulaId,
+    if (!registro) {
+      registro = new ActividadLaboral({
+        aulaVirtual: aulaId,
+        estudiante: estudianteId,
+        actividades: []
+      });
+    }
+
+    registro.actividades.push({
       fecha: datosValidados.fechaObj,
       horaEntrada: datosValidados.horaEntrada,
       horaSalida: datosValidados.horaSalida,
       horas: datosValidados.horas,
       descripcion: datosValidados.descripcion,
-      estadoAprobacion: ESTADOS_ACTIVIDAD.PENDIENTE
+      estadoAprobacion: ESTADOS_ACTIVIDAD.PENDIENTE,
+      observacionesDocente: ''
     });
 
-    await nuevaActividad.save();
+    await registro.save();
+    const nuevaActividad = registro.actividades[registro.actividades.length - 1];
     const resumenActualizado = await this.calcularHorasAula(aulaId);
 
     return {
@@ -135,12 +140,14 @@ export const actividadService = {
   },
 
   async listarActividadesLaborales(aulaId, filtros = {}) {
-    const query = { aulaVirtual: aulaId };
+    const registro = await ActividadLaboral.findOne({ aulaVirtual: aulaId });
+    let actividades = [...(registro?.actividades || [])];
+
     if (filtros.estado && Object.values(ESTADOS_ACTIVIDAD).includes(filtros.estado)) {
-      query.estadoAprobacion = filtros.estado;
+      actividades = actividades.filter((a) => a.estadoAprobacion === filtros.estado);
     }
 
-    const actividades = await ActividadLaboral.find(query).sort({ fecha: 1 });
+    actividades.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
     const resumen = await this.calcularHorasAula(aulaId);
 
     return {
@@ -153,14 +160,19 @@ export const actividadService = {
 
   // Permite al estudiante actualizar una jornada laboral siempre que no haya sido aprobada
   async actualizarActividadLaboral(estudianteId, actividadId, datos, aulaIdOpcional = null) {
-    const actividad = await ActividadLaboral.findById(actividadId);
+    const registro = await ActividadLaboral.findOne({ 'actividades._id': actividadId });
+    if (!registro) throw errorHttp('Actividad laboral no encontrada', 404);
+
+    const actividad = typeof registro.actividades?.id === 'function'
+      ? registro.actividades.id(actividadId)
+      : (registro.actividades || []).find((a) => a._id?.toString() === actividadId.toString());
     if (!actividad) throw errorHttp('Actividad laboral no encontrada', 404);
 
-    if (actividad.estudiante?.toString() !== estudianteId.toString()) {
+    if (registro.estudiante?.toString() !== estudianteId.toString()) {
       throw errorHttp('No tienes permiso para modificar esta actividad laboral', 403);
     }
 
-    if (aulaIdOpcional && actividad.aulaVirtual?.toString() !== aulaIdOpcional.toString()) {
+    if (aulaIdOpcional && registro.aulaVirtual?.toString() !== aulaIdOpcional.toString()) {
       throw errorHttp('La actividad laboral no pertenece al aula virtual especificada', 400);
     }
 
@@ -168,7 +180,7 @@ export const actividadService = {
       throw errorHttp('No se puede modificar una actividad que ya ha sido aprobada', 400);
     }
 
-    const aula = await AulaVirtual.findById(actividad.aulaVirtual);
+    const aula = await AulaVirtual.findById(registro.aulaVirtual);
     if (!aula || aula.estado !== ESTADOS_AULA.ABIERTA) {
       throw errorHttp('El aula virtual se encuentra cerrada; no se permiten modificaciones', 400);
     }
@@ -189,21 +201,16 @@ export const actividadService = {
     const resumenPrevio = await this.calcularHorasAula(aula._id);
     const datosValidados = validarJornadaLaboral(datosParaValidar, aula, resumenPrevio);
 
-    const anio = datosValidados.fechaObj.getUTCFullYear();
-    const mes = datosValidados.fechaObj.getUTCMonth();
-    const dia = datosValidados.fechaObj.getUTCDate();
-    const inicioDia = new Date(Date.UTC(anio, mes, dia, 0, 0, 0, 0));
-    const finDia = new Date(Date.UTC(anio, mes, dia, 23, 59, 59, 999));
+    const fechaIsoEditada = datosValidados.fechaObj.toISOString().split('T')[0];
+    const duplicada = registro.actividades.some(
+      (a) =>
+        a._id?.toString() !== actividadId.toString() &&
+        new Date(a.fecha).toISOString().split('T')[0] === fechaIsoEditada
+    );
 
-    const bitacoraExistente = await ActividadLaboral.findOne({
-      aulaVirtual: aula._id,
-      _id: { $ne: actividadId },
-      fecha: { $gte: inicioDia, $lte: finDia }
-    });
-
-    if (bitacoraExistente) {
+    if (duplicada) {
       throw errorHttp(
-        `Ya existe otra jornada laboral registrada para la fecha ${datosValidados.fechaObj.toISOString().split('T')[0]}`,
+        `Ya existe otra jornada laboral registrada para la fecha ${fechaIsoEditada}`,
         400
       );
     }
@@ -214,9 +221,9 @@ export const actividadService = {
     actividad.horas = datosValidados.horas;
     actividad.descripcion = datosValidados.descripcion;
     actividad.estadoAprobacion = ESTADOS_ACTIVIDAD.PENDIENTE;
-    actividad.observacionesTutor = '';
+    actividad.observacionesDocente = '';
 
-    await actividad.save();
+    await registro.save();
     const resumenActualizado = await this.calcularHorasAula(aula._id);
 
     return {
@@ -350,10 +357,15 @@ export const actividadService = {
 
   // Evaluacion por parte del docente tutor para aprobar o rechazar con retroalimentacion
   async evaluarActividadLaboral(actividadId, docenteId, datos) {
-    const actividad = await ActividadLaboral.findById(actividadId);
+    const registro = await ActividadLaboral.findOne({ 'actividades._id': actividadId });
+    if (!registro) throw errorHttp('Actividad laboral no encontrada', 404);
+
+    const actividad = typeof registro.actividades?.id === 'function'
+      ? registro.actividades.id(actividadId)
+      : (registro.actividades || []).find((a) => a._id?.toString() === actividadId.toString());
     if (!actividad) throw errorHttp('Actividad laboral no encontrada', 404);
 
-    const aula = await AulaVirtual.findById(actividad.aulaVirtual);
+    const aula = await AulaVirtual.findById(registro.aulaVirtual);
     if (!aula || aula.docenteTutor?.toString() !== docenteId.toString()) {
       throw errorHttp('No estas autorizado para evaluar actividades de esta aula virtual', 403);
     }
@@ -365,9 +377,9 @@ export const actividadService = {
 
     actividad.estadoAprobacion = estado;
     actividad.observacionesDocente = observacionesDocente ? observacionesDocente.trim() : '';
-    await actividad.save();
+    await registro.save();
 
-    const resumen = await this.calcularHorasAula(actividad.aulaVirtual);
+    const resumen = await this.calcularHorasAula(registro.aulaVirtual);
 
     return {
       success: true,
