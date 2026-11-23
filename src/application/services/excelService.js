@@ -63,6 +63,27 @@ function guardarCopiaLocal(filename, buffer) {
   }
 }
 
+function construirRichTextMaterias(textoMaterias) {
+  const baseFont = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
+  const boldFont = { ...baseFont, bold: true };
+  const lineas = textoMaterias.split('\n');
+  const richText = [];
+
+  lineas.forEach((linea, idx) => {
+    const sufijo = idx < lineas.length - 1 ? '\n' : '';
+    const match = linea.match(/^(\s*•\s*[^:\n]+\([^)\n]+\)\s*:?)(.*)$/) || linea.match(/^(\s*•\s*[^:\n]+:)(.*)$/);
+
+    if (match) {
+      richText.push({ font: boldFont, text: match[1] });
+      richText.push({ font: baseFont, text: `${match[2]}${sufijo}` });
+    } else {
+      richText.push({ font: baseFont, text: `${linea}${sufijo}` });
+    }
+  });
+
+  return { richText };
+}
+
 function normalizarTablasWorkbook(workbook) {
   // ExcelJS interpreta las tablas de la plantilla sin headerRowCount como headerRow=false y genera XML inválido con autoFilter
   for (const ws of workbook.worksheets) {
@@ -121,10 +142,9 @@ export const excelService = {
       const textoMaterias = limpiarTextoParaExcel(contenido.asignaturasUtilidad)
         .replace(/;\s*/g, '\n• ')
         .replace(/^([^•\n])/, '• $1');
-      cellA43.value = textoMaterias;
-      cellA43.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
+      cellA43.value = construirRichTextMaterias(textoMaterias);
       cellA43.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
-      const numLineasMaterias = textoMaterias.split('\n').length;
+      const numLineasMaterias = Math.max(textoMaterias.split('\n').length, Math.ceil(textoMaterias.length / 100));
       worksheet.getRow(43).height = Math.max(45, numLineasMaterias * 15 + 8);
     } else {
       cellA43.value = '';
@@ -488,7 +508,16 @@ export const excelService = {
     inyectarCeldaTexto('A48', 48, contenido.resumenActividades);
     inyectarCeldaTexto('A50', 50, contenido.contribucionConocimientos);
     inyectarCeldaTexto('A52', 52, contenido.resultadosAprendizaje);
-    inyectarCeldaTexto('A54', 54, contenido.asignaturasMalla);
+    if (contenido.asignaturasMalla) {
+      const textoMalla = limpiarTextoParaExcel(contenido.asignaturasMalla)
+        .replace(/;\s*/g, '\n• ')
+        .replace(/^([^•\n])/, '• $1');
+      const cellA54 = worksheet.getCell('A54');
+      cellA54.value = construirRichTextMaterias(textoMalla);
+      cellA54.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      const lineas = Math.max(textoMalla.split('\n').length, Math.ceil(textoMalla.length / 105));
+      worksheet.getRow(54).height = Math.max(40, lineas * 14 + 10);
+    }
 
     // Seccion 7: Informacion adicional
     if (aula?.fechaInicio) {
