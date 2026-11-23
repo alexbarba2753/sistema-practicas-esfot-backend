@@ -64,6 +64,44 @@ describe('Pruebas unitarias de validacion de actividades (validarActividad)', ()
     );
   });
 
+  it('debe rechazar si la fecha es anterior al inicio del aula virtual', () => {
+    const aulaConRango = {
+      fechaInicio: new Date('2026-09-01T00:00:00Z'),
+      fechaFin: new Date('2026-10-31T00:00:00Z'),
+      horasRequeridas: 240
+    };
+    const datos = {
+      fecha: '2026-08-31',
+      horaEntrada: '08:00',
+      horaSalida: '12:00',
+      horas: 4,
+      descripcion: 'Actividad registrada antes del periodo del aula virtual'
+    };
+
+    expect(() => validarJornadaLaboral(datos, aulaConRango, {})).toThrow(
+      'La fecha de la actividad no puede ser anterior al inicio del aula virtual (2026-09-01)'
+    );
+  });
+
+  it('debe rechazar si la fecha es posterior a la fecha fin del aula virtual', () => {
+    const aulaConRango = {
+      fechaInicio: new Date('2026-09-01T00:00:00Z'),
+      fechaFin: new Date('2026-10-31T00:00:00Z'),
+      horasRequeridas: 240
+    };
+    const datos = {
+      fecha: '2026-11-01',
+      horaEntrada: '08:00',
+      horaSalida: '12:00',
+      horas: 4,
+      descripcion: 'Actividad registrada despues del periodo del aula virtual'
+    };
+
+    expect(() => validarJornadaLaboral(datos, aulaConRango, {})).toThrow(
+      'La fecha de la actividad no puede ser posterior a la fecha fin del aula virtual (2026-10-31)'
+    );
+  });
+
   it('debe validar actividades comunitarias con horas dentro del rango', () => {
     const datos = {
       comunidadOInstitucion: 'Barrio La Floresta',

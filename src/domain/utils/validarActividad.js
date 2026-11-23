@@ -61,12 +61,23 @@ export function validarJornadaLaboral(datos, aula, resumenActual) {
     throw errorHttp('No se pueden registrar actividades con fechas futuras a la fecha actual', 400);
   }
 
+  const fechaStr = fechaObj.toISOString().split('T')[0];
+
   if (aula?.fechaInicio) {
-    const fechaInicioAula = new Date(aula.fechaInicio);
-    fechaInicioAula.setHours(0, 0, 0, 0);
-    if (fechaObj < fechaInicioAula) {
+    const inicioStr = new Date(aula.fechaInicio).toISOString().split('T')[0];
+    if (fechaStr < inicioStr) {
       throw errorHttp(
-        `La fecha de la actividad no puede ser anterior al inicio del aula virtual (${fechaInicioAula.toISOString().split('T')[0]})`,
+        `La fecha de la actividad no puede ser anterior al inicio del aula virtual (${inicioStr})`,
+        400
+      );
+    }
+  }
+
+  if (aula?.fechaFin) {
+    const finStr = new Date(aula.fechaFin).toISOString().split('T')[0];
+    if (fechaStr > finStr) {
+      throw errorHttp(
+        `La fecha de la actividad no puede ser posterior a la fecha fin del aula virtual (${finStr})`,
         400
       );
     }
