@@ -97,6 +97,23 @@ function aplicarCamposPorTipoAula(formulario, esConvalidacion, datos) {
         observacionesFechas: String(datos.horarioSemanal.observacionesFechas).trim()
       };
     }
+
+    if (datos.evaluacionCualitativa) {
+      const permitidosEval = ['Excelente', 'Muy Buena', 'Satisfactoria', 'Deficiente'];
+      const actualEval = typeof formulario.evaluacionCualitativa?.toObject === 'function'
+        ? formulario.evaluacionCualitativa.toObject()
+        : (formulario.evaluacionCualitativa || {});
+      const nuevoEval = { ...actualEval };
+      for (const k of ['asistenciaPuntualidad', 'desempeno', 'motivacion', 'conocimientosDestrezas']) {
+        if (datos.evaluacionCualitativa[k] !== undefined) {
+          if (!permitidosEval.includes(datos.evaluacionCualitativa[k])) {
+            throw errorHttp(`Valor invalido para evaluacionCualitativa.${k}. Use: ${permitidosEval.join(', ')}`, 400);
+          }
+          nuevoEval[k] = datos.evaluacionCualitativa[k];
+        }
+      }
+      formulario.evaluacionCualitativa = nuevoEval;
+    }
   }
 
   if (datos.contenidoIa) {
@@ -240,6 +257,16 @@ function formatearDatosGeneralesFormulario(formulario, aula, esConvalidacionOpci
         },
     ultimaEdicionEstudiante: formulario.ultimaEdicionEstudiante || null
   };
+
+  if (!esConvalidacion) {
+    const ec = formulario.evaluacionCualitativa || {};
+    base.evaluacionCualitativa = {
+      asistenciaPuntualidad: ec.asistenciaPuntualidad || '',
+      desempeno: ec.desempeno || '',
+      motivacion: ec.motivacion || '',
+      conocimientosDestrezas: ec.conocimientosDestrezas || ''
+    };
+  }
 
   if (esConvalidacion) {
     base.carrera = aula?.carrera || 'Desarrollo de Software';
@@ -724,6 +751,7 @@ export const expedienteService = {
 
     // Aprobado por el docente: permanece en formularios_pendientes hasta el veredicto final del administrador
     formulario.estado = 'aprobado_docente';
+    formulario.seguimientoTutor.fechaRevisionTutor = new Date();
     if (observaciones) {
       formulario.seguimientoTutor.observacionesMejora = observaciones;
     }

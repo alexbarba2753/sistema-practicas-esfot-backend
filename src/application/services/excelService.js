@@ -104,16 +104,18 @@ export const excelService = {
 
     // 4. Datos de la practica
     if (nombreCompletoDocente) worksheet.getCell('D33').value = nombreCompletoDocente;
+    const cellA43 = worksheet.getCell('A43');
     if (contenido.asignaturasUtilidad) {
       const textoMaterias = limpiarTextoParaExcel(contenido.asignaturasUtilidad)
         .replace(/;\s*/g, '\n• ')
         .replace(/^([^•\n])/, '• $1');
-      const cellA43 = worksheet.getCell('A43');
       cellA43.value = textoMaterias;
       cellA43.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cellA43.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
       const numLineasMaterias = textoMaterias.split('\n').length;
       worksheet.getRow(43).height = Math.max(45, numLineasMaterias * 15 + 8);
+    } else {
+      cellA43.value = '';
     }
 
     // 5. Actividades desarrolladas
@@ -184,51 +186,71 @@ export const excelService = {
     worksheet.getCell('I54').value =
       formularioPendiente?.totalHoras || horario.horasProyectadas || aula?.horasRequeridas || 240;
 
+    const cellA56 = worksheet.getCell('A56');
     if (contenido.principalesActividades) {
       const textoAct = limpiarTextoParaExcel(contenido.principalesActividades);
-      const cellA56 = worksheet.getCell('A56');
       cellA56.value = textoAct;
       cellA56.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cellA56.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
       const lineasAct = Math.max(textoAct.split('\n').length, Math.ceil(textoAct.length / 110));
       worksheet.getRow(56).height = Math.max(60, lineasAct * 14 + 10);
+    } else {
+      cellA56.value = '';
     }
 
+    const cellA58 = worksheet.getCell('A58');
     if (contenido.habilidadesAdquiridas) {
       const textoHab = limpiarTextoParaExcel(contenido.habilidadesAdquiridas);
-      const cellA58 = worksheet.getCell('A58');
       cellA58.value = textoHab;
       cellA58.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cellA58.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
       const lineasHab = Math.max(textoHab.split('\n').length, Math.ceil(textoHab.length / 110));
       worksheet.getRow(58).height = Math.max(45, lineasHab * 14 + 10);
+    } else {
+      cellA58.value = '';
     }
 
-    const textoObs = limpiarTextoParaExcel(
-      contenido.observacionesTemas ||
-        'Durante la ejecución de las actividades asignadas fue necesario profundizar de manera autónoma en herramientas de versionamiento colaborativo, pruebas de integración y despliegue de servicios, complementando los contenidos teóricos revisados en clases.'
-    );
     const cellA62 = worksheet.getCell('A62');
-    cellA62.value = textoObs;
-    cellA62.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
-    cellA62.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
-    const lineasObs = Math.max(textoObs.split('\n').length, Math.ceil(textoObs.length / 110));
-    worksheet.getRow(62).height = Math.max(40, lineasObs * 14 + 10);
+    if (contenido.observacionesTemas) {
+      const textoObs = limpiarTextoParaExcel(contenido.observacionesTemas);
+      cellA62.value = textoObs;
+      cellA62.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
+      cellA62.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      const lineasObs = Math.max(textoObs.split('\n').length, Math.ceil(textoObs.length / 110));
+      worksheet.getRow(62).height = Math.max(40, lineasObs * 14 + 10);
+    } else {
+      cellA62.value = '';
+    }
 
-    // Evaluacion cualitativa: marcar X en Excelente (columna G, filas 66-69)
-    ['G66', 'G67', 'G68', 'G69'].forEach((ref) => {
-      const c = worksheet.getCell(ref);
-      c.value = 'X';
-      c.font = { name: 'Tahoma', size: 9, bold: true, color: { argb: 'FF000000' } };
-      c.alignment = { vertical: 'middle', horizontal: 'center' };
+    // Evaluacion cualitativa (Seccion 5): solo marcar si fue llenada en evaluacionCualitativa
+    const evalCual = formularioPendiente?.evaluacionCualitativa || {};
+    const colPorNivel = {
+      Excelente: 'G',
+      'Muy Buena': 'H',
+      Satisfactoria: 'I',
+      Deficiente: 'J'
+    };
+    const filasEval = [
+      [66, evalCual.asistenciaPuntualidad],
+      [67, evalCual.desempeno],
+      [68, evalCual.motivacion],
+      [69, evalCual.conocimientosDestrezas]
+    ];
+    filasEval.forEach(([fila, valor]) => {
+      ['G', 'H', 'I', 'J'].forEach((col) => {
+        worksheet.getCell(`${col}${fila}`).value = '';
+      });
+      const colElegida = colPorNivel[valor];
+      if (colElegida) {
+        const c = worksheet.getCell(`${colElegida}${fila}`);
+        c.value = 'X';
+        c.font = { name: 'Tahoma', size: 9, bold: true, color: { argb: 'FF000000' } };
+        c.alignment = { vertical: 'middle', horizontal: 'center' };
+      }
     });
 
-    // 6. Seguimiento y evaluacion del tutor academico (adaptado a modalidad virtual y tutor de practicas)
+    // 6. Seguimiento y evaluacion del tutor academico (solo se llena cuando el docente completa el endpoint de Seccion 6)
     const seg = formularioPendiente?.seguimientoTutor || {};
-    worksheet.getCell('F79').value =
-      'El estudiante proporciona detalles sobre las actividades que está llevando a cabo en la empresa mediante reunión virtual';
-    worksheet.getCell('A80').value = 'Llamada telefónica al tutor de prácticas, Supervisor de las Prácticas';
-
     if (seg.completadoPorTutor) {
       worksheet.getCell('B74').value = seg.conformidadPlan !== false ? 'X' : '';
       worksheet.getCell('D74').value = seg.conformidadPlan === false ? 'X' : '';
@@ -258,7 +280,10 @@ export const excelService = {
       }
     }
 
-    // 8. Firmas de responsabilidad: izquierda Tutor EPN, derecha Entidad Receptora
+    // 8. Firmas de responsabilidad: izquierda Tutor EPN (fecha cuando aprueba el tutor), derecha Entidad Receptora
+    if ((formularioPendiente?.estado === 'aprobado_docente' || formularioPendiente?.estado === 'aprobado') && seg.fechaRevisionTutor) {
+      worksheet.getCell('C99').value = new Date(seg.fechaRevisionTutor).toLocaleDateString('es-EC');
+    }
     if (nombreCompletoDocente) worksheet.getCell('B103').value = nombreCompletoDocente;
     if (docente?.cedula) worksheet.getCell('B104').value = docente.cedula;
     worksheet.getCell('G103').value = entidad.responsable || '';

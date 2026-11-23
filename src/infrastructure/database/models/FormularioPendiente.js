@@ -84,6 +84,15 @@ export function crearDefinicionFormulario() {
       type: Number,
       default: undefined
     },
+    evaluacionCualitativa: {
+      type: {
+        asistenciaPuntualidad: { type: String, enum: ['Excelente', 'Muy Buena', 'Satisfactoria', 'Deficiente'] },
+        desempeno: { type: String, enum: ['Excelente', 'Muy Buena', 'Satisfactoria', 'Deficiente'] },
+        motivacion: { type: String, enum: ['Excelente', 'Muy Buena', 'Satisfactoria', 'Deficiente'] },
+        conocimientosDestrezas: { type: String, enum: ['Excelente', 'Muy Buena', 'Satisfactoria', 'Deficiente'] }
+      },
+      default: undefined
+    },
     fechaDeclaracion: {
       type: Date,
       default: undefined
