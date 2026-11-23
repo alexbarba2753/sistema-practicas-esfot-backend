@@ -64,11 +64,6 @@ export const adminOrchestrator = {
     return await aulaService.cambiarEstadoAula(id, estado);
   },
 
-  // elimina un aula virtual y en cascada sus actividades y formularios asociados
-  async eliminarAula(id) {
-    return await aulaService.eliminarAula(id);
-  },
-
   // lista los expedientes entregados por tutores para dictamen y resolucion de la comision
   async listarExpedientesPendientesComision() {
     return await expedienteService.listarExpedientesPendientesComision();

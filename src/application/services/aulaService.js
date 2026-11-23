@@ -417,25 +417,5 @@ export const aulaService = {
     aula.estado = nuevoEstado;
     await aula.save();
     return await this.obtenerAulaPorId(id);
-  },
-
-  async eliminarAula(id) {
-    const { aula, esConvalidacion } = await buscarAulaPorIdCualquierTipo(id);
-    if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
-
-    if (esConvalidacion) {
-      await AulaConvalidacion.findByIdAndDelete(id);
-      await Promise.all([
-        FormularioPendiente.deleteMany({ aulaVirtual: id }),
-        FormularioAprobacion.deleteMany({ aulaVirtual: id })
-      ]);
-    } else {
-      await AulaVirtual.findByIdAndDelete(id);
-    }
-
-    return {
-      success: true,
-      message: 'Aula virtual y todos sus registros asociados fueron eliminados en cascada'
-    };
   }
 };

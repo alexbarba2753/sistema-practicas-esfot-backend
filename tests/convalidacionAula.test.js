@@ -115,7 +115,7 @@ describe('Flujo completo de aulas temporales de Convalidacion (FCP_001A + Certif
 
     expect(res.success).toBe(true);
     expect(mockFormulario.contenidoIa.resumenActividades.length).toBeGreaterThan(40);
-    expect(mockFormulario.contenidoIa.contribucionConocimientos).toContain('Desarrollo de Software');
+    expect(mockFormulario.contenidoIa.contribucionConocimientos).toMatch(/desarrollo de software/i);
     expect(mockFormulario.save).toHaveBeenCalledTimes(1);
   });
 

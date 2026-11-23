@@ -148,15 +148,6 @@ export const adminController = {
     }
   },
 
-  async eliminarAula(req, res, next) {
-    try {
-      const resultado = await adminOrchestrator.eliminarAula(req.params.id);
-      res.json(resultado);
-    } catch (error) {
-      next(error);
-    }
-  },
-
   async cambiarEstadoAula(req, res, next) {
     try {
       const estado = req.body.estado || req.query.estado;

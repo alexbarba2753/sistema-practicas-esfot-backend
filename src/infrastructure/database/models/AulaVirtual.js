@@ -90,32 +90,4 @@ const aulaVirtualSchema = new mongoose.Schema(
   }
 );
 
-async function eliminarDependenciasAula(aulaId) {
-  if (!aulaId) return;
-  const modelos = [
-    'ActividadLaboral',
-    'ActividadComunitaria',
-    'FormularioPendiente',
-    'FormularioAprobacion'
-  ];
-
-  await Promise.all(
-    modelos.map(async (nombre) => {
-      if (mongoose.models[nombre]) {
-        await mongoose.models[nombre].deleteMany({ aulaVirtual: aulaId });
-      }
-    })
-  );
-}
-
-aulaVirtualSchema.pre('findOneAndDelete', async function () {
-  const doc = await this.model.findOne(this.getFilter()).select('_id');
-  if (doc) await eliminarDependenciasAula(doc._id);
-});
-
-aulaVirtualSchema.pre('deleteOne', { document: false, query: true }, async function () {
-  const doc = await this.model.findOne(this.getFilter()).select('_id');
-  if (doc) await eliminarDependenciasAula(doc._id);
-});
-
 export const AulaVirtual = mongoose.model('AulaVirtual', aulaVirtualSchema);
