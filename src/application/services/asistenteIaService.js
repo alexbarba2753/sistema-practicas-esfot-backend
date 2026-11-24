@@ -412,32 +412,32 @@ Genera el JSON siguiendo estas reglas estrictas:
           {
             role: 'system',
             content:
-              'Eres un asesor academico oficial de la ESFOT (Escuela Politecnica Nacional). Debes mejorar, ampliar y redactar en español formal academico los 4 campos de la Seccion 6 del formulario FCP-001A de convalidacion, integrando coherentemente lo escrito por el estudiante, la informacion real extraida del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON valido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas.'
+              'Eres un asesor académico oficial de la ESFOT (Escuela Politécnica Nacional). Tu tarea es corregir cualquier falta ortográfica, gramatical o de concordancia del borrador del estudiante y transformar la Sección 6 del formulario FCP-001A en una redacción técnica, formal, amplia y bien estructurada en español académico, integrando lo escrito por el estudiante, la información real del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas.'
           },
           {
             role: 'user',
             content: `Carrera: ${aula.carrera || 'Desarrollo de Software'}
-Modalidad de convalidacion: ${aula.modalidad}
+Modalidad de convalidación: ${aula.modalidad}
 Horas solicitadas: ${aula.horasRequeridas}h
-Institucion / Plataforma: ${aula.datosInstitucion?.razonSocial || formulario.entidadReceptora?.razonSocial || 'N/A'}
+Institución / Plataforma: ${aula.datosInstitucion?.razonSocial || formulario.entidadReceptora?.razonSocial || 'N/A'}
 
-Texto extraido del certificado PDF:
-${textoCertificado.slice(0, 3000) || 'No disponible'}
+Texto extraído del certificado PDF:
+${textoCertificado.slice(0, 4000) || 'No disponible'}
 
-Campos actuales de la Seccion 6 ingresados por el estudiante:
+Campos actuales de la Sección 6 ingresados por el estudiante (pueden contener errores ortográficos o redacción básica):
 - Breve resumen de actividades realizadas: ${resumenOriginal}
-- Contribucion al perfil de egreso: ${contribucionOriginal}
+- Contribución al perfil de egreso: ${contribucionOriginal}
 - Resultados de aprendizaje del perfil de egreso: ${resultadosOriginal}
-- Asignaturas de la malla curricular y tematicas: ${asignaturasOriginal}
+- Asignaturas de la malla curricular y temáticas: ${asignaturasOriginal}
 
 Malla Curricular oficial (Fuente RAG):
 ${contextoMalla || 'No disponible'}
 
 Instrucciones estrictas para el JSON:
-1. "resumenActividades": Redacta un parrafo tecnico mas completo y detallado (80 a 130 palabras) o vinetas limpias con "• " integrando las actividades descritas por el estudiante y los detalles reales del certificado, sin copiar textualmente.
-2. "contribucionConocimientos": Amplia y fundamenta academicamente (80 a 120 palabras) como estas actividades contribuyeron al perfil de egreso de la carrera.
-3. "resultadosAprendizaje": Redacta de forma precisa y amplia (70 a 110 palabras) los resultados de aprendizaje del perfil de egreso fortalecidos.
-4. "asignaturasMalla": Selecciona o complementa con 3 a 6 asignaturas reales de la malla curricular provista (con su codigo entre parentesis) explicando las tematicas especificas aplicadas en relacion con las actividades. PROHIBIDO incluir asignaturas de Trabajo de Integracion Curricular o Examen Complexivo.`
+1. "resumenActividades": Corrige errores y amplía sustancialmente (130 a 200 palabras) combinando un breve párrafo introductorio de contexto con 4 a 6 viñetas detalladas empezando con "• " que expliquen con rigor técnico/operativo cada actividad realizada según el borrador y el certificado PDF (sin copiar textualmente).
+2. "contribucionConocimientos": Corrige errores y redacta una explicación amplia, argumentada y formal (110 a 160 palabras) sobre cómo estas actividades fortalecieron el perfil de egreso de la carrera, vinculando la experiencia práctica con competencias técnicas, organizacionales y de trabajo colaborativo.
+3. "resultadosAprendizaje": Corrige errores y desarrolla un texto amplio y estructurado (100 a 150 palabras), combinando un párrafo inicial con 3 o 4 viñetas ("• ") que detallen los resultados de aprendizaje específicos del perfil de egreso alcanzados o reforzados.
+4. "asignaturasMalla": Lee las actividades y el borrador del estudiante, y selecciona entre 4 y 6 asignaturas reales de la Malla Curricular oficial provista (con su nombre y código exactos entre paréntesis). Para cada asignatura explica las temáticas concretas aplicadas durante la actividad. Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• Nombre exacto (CÓDIGO): Temáticas específicas aplicadas". PROHIBIDO incluir asignaturas de Trabajo de Integración Curricular o Examen Complexivo.`
           }
         ],
         temperature: 0.4,
