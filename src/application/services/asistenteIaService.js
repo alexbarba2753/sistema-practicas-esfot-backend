@@ -264,7 +264,7 @@ export const asistenteIaService = {
             {
               role: 'system',
               content:
-                'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional). Devuelves EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redactas en español formal académico, sintetizando y enriqueciendo técnicamente el contenido sin copiar literalmente las entradas de la bitácora, y usando únicamente asignaturas reales de la malla provista.'
+                'Eres un redactor académico técnico de la ESFOT (Escuela Politécnica Nacional) que redacta el informe EN PRIMERA PERSONA DEL SINGULAR (como si fueras el propio estudiante: "realicé", "desarrollé", "apliqué", "fortalecí", "tuve que investigar"). Devuelves EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "asignaturasUtilidad", "principalesActividades", "habilidadesAdquiridas", "observacionesTemas". Redactas en español formal académico, sintetizando y enriqueciendo técnicamente el contenido sin copiar literalmente las entradas de la bitácora, usando únicamente asignaturas reales de la malla provista y colocando cada viñeta en su propia línea.'
             },
             {
               role: 'user',
@@ -278,14 +278,14 @@ ${contextoMalla || 'No disponible'}
 Bitácora completa de actividades registradas por el estudiante:
 ${bitacoraTexto.slice(0, 8000)}
 
-Genera el JSON siguiendo estas reglas estrictas:
+Genera el JSON siguiendo estas reglas estrictas (TODO redactado en PRIMERA PERSONA DEL SINGULAR, nunca en tercera persona):
 1. "asignaturasUtilidad": Analiza TODAS las actividades de la bitácora y selecciona de la Malla Curricular oficial provista todas las asignaturas profesionales pertinentes a lo ejecutado (idealmente entre 4 y 8 asignaturas si las actividades abarcan distintas áreas; no te limites a 2).
    - PROHIBIDO incluir asignaturas de titulación o examen complexivo (como "Diseño de Trabajo de Integración Curricular", "Preparación Examen Complexivo", "Trabajo de Integración Curricular" o "Examen de Carácter Complexivo").
-   - Para CADA asignatura elegida, deduce y redacta los temas o contenidos específicos de esa materia que se aplicaron en las actividades (ejemplo: "• Bases de Datos (TDSD343): Diseño de esquemas relacionales y no relacionales, consultas, indexación e integridad de datos"). PROHIBIDO usar frases genéricas o repetitivas como "Aplicación práctica de sus fundamentos en el proyecto".
-   - Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• Nombre exacto (CÓDIGO): Temáticas específicas aplicadas".
-2. "principalesActividades": Sintetiza y agrupa todas las actividades de la bitácora en un resumen técnico enriquecido (NO copies ni parafrasees línea por línea cada registro de la bitácora). Redacta entre 5 y 7 viñetas elaboradas que expliquen con claridad el alcance técnico, arquitectura, módulos y propósito de lo desarrollado. Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• ".
-3. "habilidadesAdquiridas": Redacta un texto técnico amplio y detallado (120 a 180 palabras, equivalente a 6 a 9 líneas) sobre las competencias técnicas, metodologías, herramientas y habilidades profesionales consolidadas durante la práctica, sustentado en las actividades reales de la bitácora.
-4. "observacionesTemas": Redacta un párrafo amplio y específico (90 a 140 palabras, equivalente a 4 a 7 líneas) detallando las herramientas, frameworks, estándares o temáticas avanzadas que no se profundizaron en clases y que el estudiante debió investigar y aplicar de forma autónoma durante la práctica.`
+   - Para CADA asignatura elegida, deduce y redacta en primera persona los temas o contenidos específicos de esa materia que apliqué en mis actividades (ejemplo: "• Bases de Datos (TDSD343): Diseño de esquemas relacionales y no relacionales, consultas, indexación e integridad de datos aplicados en los módulos desarrollados"). PROHIBIDO usar frases genéricas como "Aplicación práctica de sus fundamentos en el proyecto".
+   - Formato OBLIGATORIO: UNA POR LÍNEA (separadas por salto de línea "\\n") empezando cada línea con "• Nombre exacto (CÓDIGO): Temáticas específicas aplicadas".
+2. "principalesActividades": Sintetiza y agrupa todas las actividades de la bitácora en un resumen técnico enriquecido EN PRIMERA PERSONA (NO copies ni parafrasees línea por línea cada registro de la bitácora). Redacta entre 5 y 7 viñetas elaboradas ("• Desarrollé...", "• Implementé...", "• Diseñé...") que expliquen con claridad el alcance técnico, arquitectura, módulos y propósito de lo que ejecuté. Formato OBLIGATORIO: UNA POR LÍNEA separadas por "\\n".
+3. "habilidadesAdquiridas": Redacta un texto técnico amplio y detallado EN PRIMERA PERSONA (120 a 180 palabras, equivalente a 6 a 9 líneas) sobre las competencias técnicas, metodologías, herramientas y habilidades profesionales que consolidé durante mi práctica, sustentado en las actividades reales de la bitácora.
+4. "observacionesTemas": Redacta un párrafo amplio y específico EN PRIMERA PERSONA (90 a 140 palabras, equivalente a 4 a 7 líneas) detallando las herramientas, frameworks, estándares o temáticas avanzadas que no profundicé en clases y que debí investigar y aplicar de forma autónoma durante mi práctica.`
             }
           ],
           temperature: 0.4,
@@ -412,7 +412,7 @@ Genera el JSON siguiendo estas reglas estrictas:
           {
             role: 'system',
             content:
-              'Eres un asesor académico oficial de la ESFOT (Escuela Politécnica Nacional). Tu tarea es corregir cualquier falta ortográfica, gramatical o de concordancia del borrador del estudiante y transformar la Sección 6 del formulario FCP-001A en una redacción técnica, formal, amplia y bien estructurada en español académico, integrando lo escrito por el estudiante, la información real del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas.'
+              'Eres un asesor académico oficial de la ESFOT (Escuela Politécnica Nacional) que redacta el informe EN PRIMERA PERSONA DEL SINGULAR (como si fueras el propio estudiante: "realicé", "brindé apoyo", "apliqué", "fortalecí", "durante mi servicio/práctica"; NUNCA escribas en tercera persona como "el estudiante efectuó"). Tu tarea es corregir cualquier falta ortográfica, gramatical o de concordancia del borrador y transformar la Sección 6 del formulario FCP-001A en una redacción técnica, formal, amplia y bien estructurada en español académico, integrando lo escrito por el estudiante, la información real del certificado PDF y la malla curricular oficial. Devuelve EXCLUSIVAMENTE un objeto JSON válido con las claves exactas: "resumenActividades", "contribucionConocimientos", "resultadosAprendizaje", "asignaturasMalla". No inventes instituciones, horas ni fechas distintas a las provistas y coloca cada viñeta en su propia línea separada por "\\n".'
           },
           {
             role: 'user',
@@ -433,11 +433,11 @@ Campos actuales de la Sección 6 ingresados por el estudiante (pueden contener e
 Malla Curricular oficial (Fuente RAG):
 ${contextoMalla || 'No disponible'}
 
-Instrucciones estrictas para el JSON:
-1. "resumenActividades": Corrige errores y amplía sustancialmente (130 a 200 palabras) combinando un breve párrafo introductorio de contexto con 4 a 6 viñetas detalladas empezando con "• " que expliquen con rigor técnico/operativo cada actividad realizada según el borrador y el certificado PDF (sin copiar textualmente).
-2. "contribucionConocimientos": Corrige errores y redacta una explicación amplia, argumentada y formal (110 a 160 palabras) sobre cómo estas actividades fortalecieron el perfil de egreso de la carrera, vinculando la experiencia práctica con competencias técnicas, organizacionales y de trabajo colaborativo.
-3. "resultadosAprendizaje": Corrige errores y desarrolla un texto amplio y estructurado (100 a 150 palabras), combinando un párrafo inicial con 3 o 4 viñetas ("• ") que detallen los resultados de aprendizaje específicos del perfil de egreso alcanzados o reforzados.
-4. "asignaturasMalla": Lee las actividades y el borrador del estudiante, y selecciona entre 4 y 6 asignaturas reales de la Malla Curricular oficial provista (con su nombre y código exactos entre paréntesis). Para cada asignatura explica las temáticas concretas aplicadas durante la actividad. Formato OBLIGATORIO: UNA POR LÍNEA empezando cada línea con "• Nombre exacto (CÓDIGO): Temáticas específicas aplicadas". PROHIBIDO incluir asignaturas de Trabajo de Integración Curricular o Examen Complexivo.`
+Instrucciones estrictas para el JSON (TODO redactado en PRIMERA PERSONA DEL SINGULAR, nunca menciones "el estudiante"):
+1. "resumenActividades": Corrige errores y amplía sustancialmente EN PRIMERA PERSONA (130 a 200 palabras) combinando un breve párrafo introductorio de contexto ("Durante mi servicio comunitario / práctica en..., realicé las siguientes actividades:") con 4 a 6 viñetas detalladas en líneas separadas por "\\n", empezando cada viñeta con "• " que expliquen con rigor técnico/operativo cada actividad que ejecuté según el borrador y el certificado PDF (sin copiar textualmente).
+2. "contribucionConocimientos": Corrige errores y redacta una explicación amplia, argumentada y formal EN PRIMERA PERSONA (110 a 160 palabras) sobre cómo estas actividades contribuyeron a mi formación y al perfil de egreso de mi carrera, vinculando mi experiencia práctica con competencias técnicas, organizacionales y de trabajo colaborativo.
+3. "resultadosAprendizaje": Corrige errores y desarrolla un texto amplio y estructurado EN PRIMERA PERSONA (100 a 150 palabras), combinando un párrafo inicial con 3 o 4 viñetas en líneas separadas por "\\n" ("• ") que detallen los resultados de aprendizaje específicos del perfil de egreso que alcancé o reforcé.
+4. "asignaturasMalla": Lee las actividades y el borrador, y selecciona entre 4 y 6 asignaturas reales de la Malla Curricular oficial provista (con su nombre y código exactos entre paréntesis). Para cada asignatura explica en primera persona o de forma técnica directa las temáticas concretas que apliqué durante la actividad. Formato OBLIGATORIO: UNA POR LÍNEA (separadas por "\\n") empezando cada línea con "• Nombre exacto (CÓDIGO): Temáticas específicas aplicadas". PROHIBIDO incluir asignaturas de Trabajo de Integración Curricular o Examen Complexivo.`
           }
         ],
         temperature: 0.4,

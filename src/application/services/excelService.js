@@ -44,7 +44,8 @@ export function limpiarTextoParaExcel(texto) {
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     .replace(/_([^_]+)_/g, '$1')
-    .replace(/^\s*[-*]\s+/gm, '• ')
+    .replace(/([^\n])\s*•\s+/g, '$1\n   • ')
+    .replace(/^\s*[-*•]\s+/gm, '   • ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -140,8 +141,8 @@ export const excelService = {
     const cellA43 = worksheet.getCell('A43');
     if (contenido.asignaturasUtilidad) {
       const textoMaterias = limpiarTextoParaExcel(contenido.asignaturasUtilidad)
-        .replace(/;\s*/g, '\n• ')
-        .replace(/^([^•\n])/, '• $1');
+        .replace(/;\s*/g, '\n   • ')
+        .replace(/^([^•\n\s])/, '   • $1');
       cellA43.value = construirRichTextMaterias(textoMaterias);
       cellA43.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
       const numLineasMaterias = Math.max(textoMaterias.split('\n').length, Math.ceil(textoMaterias.length / 100));
@@ -494,6 +495,11 @@ export const excelService = {
     if (entidad.nombreProyecto) worksheet.getCell('H42').value = entidad.nombreProyecto;
 
     // Seccion 6: Informacion de las actividades realizadas (mejorada por IA / editada)
+    const calcularLineasEnvueltas = (texto = '', ancho = 100) =>
+      texto
+        .split('\n')
+        .reduce((total, linea) => total + Math.max(1, Math.ceil(linea.length / ancho)), 0);
+
     const inyectarCeldaTexto = (ref, fila, texto) => {
       if (!texto) return;
       const textoLimpio = limpiarTextoParaExcel(texto);
@@ -501,8 +507,8 @@ export const excelService = {
       cell.value = textoLimpio;
       cell.font = { name: 'Tahoma', size: 9, color: { argb: 'FF000000' } };
       cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
-      const lineas = Math.max(textoLimpio.split('\n').length, Math.ceil(textoLimpio.length / 105));
-      worksheet.getRow(fila).height = Math.max(40, lineas * 14 + 10);
+      const lineas = calcularLineasEnvueltas(textoLimpio, 100);
+      worksheet.getRow(fila).height = Math.max(45, lineas * 14 + 12);
     };
 
     inyectarCeldaTexto('A48', 48, contenido.resumenActividades);
@@ -510,13 +516,13 @@ export const excelService = {
     inyectarCeldaTexto('A52', 52, contenido.resultadosAprendizaje);
     if (contenido.asignaturasMalla) {
       const textoMalla = limpiarTextoParaExcel(contenido.asignaturasMalla)
-        .replace(/;\s*/g, '\n• ')
-        .replace(/^([^•\n])/, '• $1');
+        .replace(/;\s*/g, '\n   • ')
+        .replace(/^([^•\n\s])/, '   • $1');
       const cellA54 = worksheet.getCell('A54');
       cellA54.value = construirRichTextMaterias(textoMalla);
       cellA54.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
-      const lineas = Math.max(textoMalla.split('\n').length, Math.ceil(textoMalla.length / 105));
-      worksheet.getRow(54).height = Math.max(40, lineas * 14 + 10);
+      const lineas = calcularLineasEnvueltas(textoMalla, 100);
+      worksheet.getRow(54).height = Math.max(45, lineas * 14 + 12);
     }
 
     // Seccion 7: Informacion adicional
@@ -571,6 +577,25 @@ export const excelService = {
       if (resCom.observacionesComision) {
         inyectarCeldaTexto('C79', 79, resCom.observacionesComision);
       }
+    }
+
+    // Seccion 11: Certificaciones (fechas reales del flujo en BD)
+    const estaAprobadoTutor =
+      formularioPendiente?.estado === 'aprobado_docente' || formularioPendiente?.estado === 'aprobado';
+
+    if (aula?.fechaEntregaExpediente) {
+      worksheet.getCell('C83').value = new Date(aula.fechaEntregaExpediente).toLocaleDateString('es-EC');
+    }
+    if (estaAprobadoTutor && seg.fechaRevisionTutor) {
+      const fechaRevTutor = new Date(seg.fechaRevisionTutor).toLocaleDateString('es-EC');
+      worksheet.getCell('C84').value = fechaRevTutor;
+      worksheet.getCell('H83').value = fechaRevTutor;
+    }
+    if (nombreCompletoDocente) {
+      worksheet.getCell('B88').value = nombreCompletoDocente;
+    }
+    if (resCom.avalaAprobacion === true && resCom.fechaResolucion) {
+      worksheet.getCell('H84').value = new Date(resCom.fechaResolucion).toLocaleDateString('es-EC');
     }
 
     normalizarTablasWorkbook(workbook);
