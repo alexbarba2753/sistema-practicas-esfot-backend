@@ -81,12 +81,6 @@ export const emailAdapter = {
                         </td>
                       </tr>
                     </table>
-                    <p style="margin: 0 0 6px 0; font-size: 13px; color: #6b7280;">
-                      Si el botón no funciona, copia y pega este enlace en tu navegador:
-                    </p>
-                    <p style="margin: 0 0 20px 0; font-size: 12px; line-height: 1.5; word-break: break-all; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 10px 12px; color: #1d4ed8;">
-                      <a href="${enlace}" target="_blank" style="color: #1d4ed8; text-decoration: underline;">${enlace}</a>
-                    </p>
                     <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #6b7280;">
                       Si no solicitaste restablecer tu contraseña, puedes ignorar este mensaje de forma segura.
                     </p>
