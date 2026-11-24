@@ -4,6 +4,11 @@ import { usuarioService } from '../src/application/services/usuarioService.js';
 import { aulaService } from '../src/application/services/aulaService.js';
 import { fuenteService } from '../src/application/services/fuenteService.js';
 import { expedienteService } from '../src/application/services/expedienteService.js';
+import { actividadService } from '../src/application/services/actividadService.js';
+import { emailAdapter } from '../src/infrastructure/adapters/emailAdapter.js';
+import { AulaVirtual } from '../src/infrastructure/database/models/AulaVirtual.js';
+import { FormularioPendiente } from '../src/infrastructure/database/models/FormularioPendiente.js';
+import { FormularioAprobacion } from '../src/infrastructure/database/models/FormularioAprobacion.js';
 import { ROLES, MODALIDADES, HORAS_REGLAMENTARIAS } from '../src/domain/constants/practicasConstants.js';
 
 describe('Pruebas del modulo Administrador (adminOrchestrator)', () => {
@@ -165,6 +170,82 @@ describe('Pruebas del modulo Administrador (adminOrchestrator)', () => {
         resolucionNumero: 'RES-CPP-2026-001',
         observaciones: 'Cumple con todos los requisitos normativos'
       });
+    });
+
+    it('debe enviar correo de aprobacion al estudiante y al docente tutor al emitir dictamen final aprobado', async () => {
+      const mockAula = {
+        _id: 'aula002',
+        nombre: 'Practicas Laborales - Byron Loarte',
+        carrera: 'Desarrollo de Software',
+        modalidad: MODALIDADES.LABORAL,
+        estado: 'activa',
+        horasRequeridas: 240,
+        estudiante: {
+          _id: 'est1',
+          nombres: 'Byron',
+          apellidos: 'Loarte',
+          correo: 'byron.loarte@epn.edu.ec'
+        },
+        docenteTutor: {
+          _id: 'doc1',
+          nombres: 'Fernando',
+          apellidos: 'Gomez',
+          correo: 'fernando.gomez@epn.edu.ec'
+        },
+        save: jest.fn().mockResolvedValue(true)
+      };
+
+      jest.spyOn(AulaVirtual, 'findById').mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          populate: jest.fn().mockResolvedValue(mockAula)
+        })
+      });
+
+      const mockForm = {
+        _id: 'form002',
+        aulaVirtual: 'aula002',
+        tipoAula: 'laboral',
+        totalHoras: 240,
+        estado: 'aprobado_docente',
+        toObject() {
+          return { ...this };
+        }
+      };
+
+      jest.spyOn(FormularioPendiente, 'findOne').mockResolvedValue(mockForm);
+      jest.spyOn(actividadService, 'calcularHorasAula').mockResolvedValue({ horasAprobadas: 240 });
+      jest.spyOn(FormularioAprobacion, 'findOneAndUpdate').mockResolvedValue({ ...mockForm, estado: 'aprobado' });
+      jest.spyOn(FormularioPendiente, 'deleteOne').mockResolvedValue({ deletedCount: 1 });
+      jest.spyOn(emailAdapter, 'enviarCorreoAprobacionFinal').mockResolvedValue({
+        enviado: true,
+        statusCode: 202,
+        messageId: 'sg_ok'
+      });
+
+      const res = await expedienteService.dictamenFinalComision('aula002', 'admin1', {
+        dictamen: 'Aprobado',
+        observaciones: 'Aprobado por la Comision.'
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.notificacionesEnviadas).toHaveLength(2);
+      expect(emailAdapter.enviarCorreoAprobacionFinal).toHaveBeenCalledTimes(2);
+      expect(emailAdapter.enviarCorreoAprobacionFinal).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          destinatario: 'byron.loarte@epn.edu.ec',
+          horasAprobadas: 240,
+          tipoFormulario: 'F-AA-119 (Prácticas Laborales)'
+        })
+      );
+      expect(emailAdapter.enviarCorreoAprobacionFinal).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          destinatario: 'fernando.gomez@epn.edu.ec',
+          horasAprobadas: 240,
+          tipoFormulario: 'F-AA-119 (Prácticas Laborales)'
+        })
+      );
     });
   });
 });

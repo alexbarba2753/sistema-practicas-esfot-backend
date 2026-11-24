@@ -6,6 +6,7 @@ import { ActividadLaboral } from '../../infrastructure/database/models/Actividad
 import { ESTADOS_AULA, MODALIDADES } from '../../domain/constants/practicasConstants.js';
 import { actividadService } from './actividadService.js';
 import { excelService } from './excelService.js';
+import { emailAdapter } from '../../infrastructure/adapters/emailAdapter.js';
 import { errorHttp } from '../../domain/utils/errorHttp.js';
 import { validarYCalcularHorarioSemanal } from '../../domain/utils/validarHorario.js';
 
@@ -939,7 +940,10 @@ export const expedienteService = {
 
   // Veredicto final del Administrador: aprobar (mueve a formularios_aprobados y cierra aula) o rechazar (devuelve al docente)
   async dictamenFinalComision(aulaId, adminId, datos = {}) {
-    const { aula, esConvalidacion } = await buscarAulaPorId(aulaId, { populateEstudiante: true });
+    const { aula, esConvalidacion } = await buscarAulaPorId(aulaId, {
+      populateEstudiante: true,
+      populateDocente: true
+    });
     if (!aula) throw errorHttp('Aula virtual no encontrada', 404);
 
     if (aula.estado === ESTADOS_AULA.CERRADA) {
@@ -1013,11 +1017,57 @@ export const expedienteService = {
     aula.estado = ESTADOS_AULA.CERRADA;
     await aula.save();
 
+    const tipoFormulario = esConvalidacion
+      ? 'FCP-001A (Convalidación)'
+      : aula.modalidad === MODALIDADES.COMUNITARIO
+        ? 'FCP-001A (Servicio Comunitario)'
+        : 'F-AA-119 (Prácticas Laborales)';
+
+    const nombreEstudiante =
+      [aula.estudiante?.nombres, aula.estudiante?.apellidos].filter(Boolean).join(' ') || 'Estudiante';
+    const nombreDocente =
+      [aula.docenteTutor?.nombres, aula.docenteTutor?.apellidos].filter(Boolean).join(' ') || 'Docente Tutor';
+
+    const destinatarios = [];
+    if (aula.estudiante?.correo) {
+      destinatarios.push({
+        correo: aula.estudiante.correo.trim(),
+        nombre: nombreEstudiante
+      });
+    }
+    if (
+      aula.docenteTutor?.correo &&
+      aula.docenteTutor.correo.trim().toLowerCase() !== aula.estudiante?.correo?.trim().toLowerCase()
+    ) {
+      destinatarios.push({
+        correo: aula.docenteTutor.correo.trim(),
+        nombre: nombreDocente
+      });
+    }
+
+    const notificacionesEnviadas = [];
+    for (const dest of destinatarios) {
+      const envio = await emailAdapter.enviarCorreoAprobacionFinal({
+        destinatario: dest.correo,
+        nombreDestinatario: dest.nombre,
+        nombreEstudiante,
+        nombreDocente,
+        tipoFormulario,
+        horasAprobadas: horasFinales,
+        carrera: aula.carrera,
+        nombreAula: aula.nombre,
+        observaciones: formulario.resolucionComision.observacionesComision,
+        fechaResolucion: formulario.resolucionComision.fechaResolucion
+      });
+      notificacionesEnviadas.push({ correo: dest.correo, messageId: envio?.messageId || null });
+    }
+
     return {
       success: true,
       message: 'Practica aprobada definitivamente por el administrador y movida a formularios_aprobados.',
       formulario: formatearDatosGeneralesFormulario(formularioAprobado, aula, esConvalidacion),
-      aulaEstado: aula.estado
+      aulaEstado: aula.estado,
+      notificacionesEnviadas
     };
   },
 
