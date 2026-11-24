@@ -1,12 +1,26 @@
 import sgMail from '@sendgrid/mail';
 import { ENV } from '../config/env.js';
-
-if (ENV.SENDGRID_API_KEY && ENV.SENDGRID_API_KEY.startsWith('SG.')) {
-  sgMail.setApiKey(ENV.SENDGRID_API_KEY);
-}
+import { errorHttp } from '../../domain/utils/errorHttp.js';
 
 export const emailAdapter = {
   async enviarCorreoRecuperacion(destinatario, token) {
+    const apiKey = ENV.SENDGRID_API_KEY?.trim();
+    const remitente = ENV.EMAIL_FROM?.trim();
+
+    if (!apiKey || !apiKey.startsWith('SG.')) {
+      throw errorHttp('El servicio de correo (SendGrid) no está configurado. Verifica SENDGRID_API_KEY.', 503);
+    }
+
+    if (!remitente) {
+      throw errorHttp('El remitente de correo no está configurado. Verifica EMAIL_FROM.', 503);
+    }
+
+    if (!destinatario || !String(destinatario).trim()) {
+      throw errorHttp('El usuario no tiene un correo destinatario válido.', 400);
+    }
+
+    sgMail.setApiKey(apiKey);
+
     const enlace = `${ENV.CLIENT_URL}/reset-password?token=${token}`;
     const asunto = 'Recuperación de contraseña - Sistema de Prácticas ESFOT';
     const contenido = `
@@ -21,22 +35,33 @@ export const emailAdapter = {
     `;
 
     try {
-      if (ENV.SENDGRID_API_KEY && ENV.SENDGRID_API_KEY.startsWith('SG.')) {
-        await sgMail.send({
-          to: destinatario,
-          from: ENV.EMAIL_FROM,
-          subject: asunto,
-          html: contenido
-        });
-        console.log(`[Email] Correo enviado a ${destinatario}`);
-      } else {
-        console.log(`[Email Mock] Simulación de correo a ${destinatario} con enlace: ${enlace}`);
+      const [response] = await sgMail.send({
+        to: String(destinatario).trim(),
+        from: remitente,
+        subject: asunto,
+        html: contenido
+      });
+
+      if (!response || response.statusCode < 200 || response.statusCode >= 300) {
+        throw errorHttp(
+          `SendGrid rechazó el envío del correo (status ${response?.statusCode || 'desconocido'})`,
+          502
+        );
       }
-      return true;
+
+      const messageId = response.headers?.['x-message-id'] || null;
+      console.log(`[Email] Correo enviado a ${destinatario} (status ${response.statusCode}, id: ${messageId})`);
+      return {
+        enviado: true,
+        statusCode: response.statusCode,
+        messageId
+      };
     } catch (err) {
-      console.error('[Email Error] No se pudo enviar el correo:', err.message);
-      // No bloqueamos el flujo si SendGrid falla en ambiente local
-      return false;
+      if (err.statusCode) throw err;
+      const detalle =
+        err.response?.body?.errors?.map((e) => e.message).join('; ') || err.message;
+      console.error('[Email Error] No se pudo enviar el correo:', detalle);
+      throw errorHttp(`No se pudo enviar el correo de recuperación: ${detalle}`, 502);
     }
   }
 };

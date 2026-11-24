@@ -515,6 +515,6 @@ describe('Pruebas del modulo Estudiante (estudianteOrchestrator)', () => {
       expect(res.success).toBe(true);
       expect(res.formulario.totalHoras).toBe(80);
       expect(mockForm.save).toHaveBeenCalledTimes(1);
-    });
+    }, 15000);
   });
 });

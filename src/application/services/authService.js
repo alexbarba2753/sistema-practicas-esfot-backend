@@ -81,11 +81,24 @@ export const authService = {
     usuario.tokenExpiracion = new Date(Date.now() + 3600000);
     await usuario.save();
 
-    await emailAdapter.enviarCorreoRecuperacion(usuario.correo, resetToken);
+    let envio;
+    try {
+      envio = await emailAdapter.enviarCorreoRecuperacion(usuario.correo, resetToken);
+      if (!envio?.enviado) {
+        throw errorHttp('No se pudo verificar el envío del correo de recuperación', 502);
+      }
+    } catch (err) {
+      usuario.token = undefined;
+      usuario.tokenExpiracion = undefined;
+      await usuario.save();
+      throw err;
+    }
 
     return {
       success: true,
-      message: 'Si el correo está registrado, se enviará un enlace de recuperación',
+      message: 'Correo de recuperación enviado exitosamente',
+      correoEnviado: true,
+      messageId: envio.messageId || null,
       token: resetToken
     };
   },

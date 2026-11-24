@@ -11,7 +11,7 @@ export const ENV = {
   JWT_RESET_SECRET: process.env.JWT_RESET_SECRET || 'reset_secret_default_key',
   JWT_RESET_EXPIRES_IN: process.env.JWT_RESET_EXPIRES_IN || '1h',
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
-  EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@esfot.epn.edu.ec',
+  EMAIL_FROM: process.env.EMAIL_FROM,
   GROQ_API_KEY: process.env.GROQ_API_KEY,
   GROQ_MODEL: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173'

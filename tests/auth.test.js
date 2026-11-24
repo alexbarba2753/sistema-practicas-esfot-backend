@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import { ENV } from '../src/infrastructure/config/env.js';
 import { authOrchestrator } from '../src/application/orchestrators/authOrchestrator.js';
 import { authService } from '../src/application/services/authService.js';
+import { usuarioService } from '../src/application/services/usuarioService.js';
+import { emailAdapter } from '../src/infrastructure/adapters/emailAdapter.js';
 
 describe('Pruebas Unitarias de Autenticacion y Seguridad', () => {
   afterEach(() => {
@@ -57,5 +59,46 @@ describe('Pruebas Unitarias de Autenticacion y Seguridad', () => {
     expect(resultado.success).toBe(true);
     expect(resultado.token).toBe('jwt_mock_token');
     expect(authService.iniciarSesion).toHaveBeenCalledWith('admin@esfot.epn.edu.ec', 'AdminPassword123!');
+  });
+
+  test('debe devolver token y correoEnviado=true cuando SendGrid confirma el envio', async () => {
+    const mockUsuario = {
+      _id: 'user_rec_1',
+      correo: 'estudiante@esfot.epn.edu.ec',
+      save: jest.fn().mockResolvedValue(true)
+    };
+    jest.spyOn(usuarioService, 'buscarPorCorreo').mockResolvedValue(mockUsuario);
+    jest.spyOn(emailAdapter, 'enviarCorreoRecuperacion').mockResolvedValue({
+      enviado: true,
+      statusCode: 202,
+      messageId: 'sg_msg_123'
+    });
+
+    const resultado = await authService.solicitarRecuperacionClave('estudiante@esfot.epn.edu.ec');
+
+    expect(resultado.success).toBe(true);
+    expect(resultado.correoEnviado).toBe(true);
+    expect(resultado.messageId).toBe('sg_msg_123');
+    expect(resultado.token).toBeDefined();
+    expect(mockUsuario.save).toHaveBeenCalledTimes(1);
+  });
+
+  test('debe lanzar error y limpiar token si falla el envio del correo de recuperacion', async () => {
+    const mockUsuario = {
+      _id: 'user_rec_2',
+      correo: 'docente@esfot.epn.edu.ec',
+      save: jest.fn().mockResolvedValue(true)
+    };
+    jest.spyOn(usuarioService, 'buscarPorCorreo').mockResolvedValue(mockUsuario);
+    jest.spyOn(emailAdapter, 'enviarCorreoRecuperacion').mockRejectedValue(
+      Object.assign(new Error('No se pudo enviar el correo de recuperación'), { statusCode: 502 })
+    );
+
+    await expect(authService.solicitarRecuperacionClave('docente@esfot.epn.edu.ec')).rejects.toMatchObject({
+      statusCode: 502
+    });
+    expect(mockUsuario.token).toBeUndefined();
+    expect(mockUsuario.tokenExpiracion).toBeUndefined();
+    expect(mockUsuario.save).toHaveBeenCalledTimes(2);
   });
 });
